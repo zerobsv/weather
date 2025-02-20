@@ -1,6 +1,8 @@
 package weather
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -8,6 +10,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+type WeatherData struct {
+	Location struct {
+		Name    string `json:"name"`
+		Country string `json:"country"`
+	} `json:"location"`
+	Current struct {
+		Temperature int `json:"temperature"`
+	} `json:"current"`
+}
 
 // GetWeatherLocal retrieves the current weather data for Bengaluru using the WeatherStack API.
 //
@@ -21,9 +33,9 @@ import (
 //
 // Return: weather data for the current location as a JSON string
 // None
-func GetWeatherLocal(ctx *gin.Context) {
+func getWeatherLocal(ctx *gin.Context) {
 
-	var apiKey, err = ParseApiKey()
+	var apiKey, err = parseApiKey()
 	if err != nil {
 		log.Fatalf("Error reading API key: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read API key"})
@@ -34,10 +46,18 @@ func GetWeatherLocal(ctx *gin.Context) {
 
 	client := http.Client{Timeout: time.Duration(2) * time.Second}
 
-	var requestUrl = "http://api.weatherstack.com/current?access_key=" + string(apiKey) + "&query=Bengaluru"
+	requestUrl := fmt.Sprintf("http://api.weatherstack.com/current?access_key=%s&query=%s", apiKey, "Bengaluru")
+
 	log.Printf("Making a GET request to %s", requestUrl)
 
 	resp, err := client.Get(requestUrl)
+
+	if resp.StatusCode != http.StatusOK {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Weather API request failed"})
+		return
+	}
+
+	log.Printf("response: %v", resp)
 
 	if err != nil {
 		log.Fatalf("Error fetching weather data: %v", err)
@@ -47,7 +67,19 @@ func GetWeatherLocal(ctx *gin.Context) {
 
 	defer resp.Body.Close()
 
-	ctx.JSON(http.StatusOK, resp.Body)
+	var weatherData WeatherData
+	err = json.NewDecoder(resp.Body).Decode(&weatherData)
+	if err != nil {
+		log.Fatalf("Error unmarshalling JSON response: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshall JSON response"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"city":        weatherData.Location.Name,
+		"country":     weatherData.Location.Country,
+		"temperature": fmt.Sprint(weatherData.Current.Temperature),
+	})
 
 }
 
@@ -60,7 +92,7 @@ func GetWeatherLocal(ctx *gin.Context) {
 // None
 //
 // Return: the api key as a string
-func ParseApiKey() (string, error) {
+func parseApiKey() (string, error) {
 	// Parse API key from file and return it
 	file, err := os.ReadFile("./api.key")
 	if err != nil {
@@ -77,7 +109,7 @@ func ParseApiKey() (string, error) {
 //
 // Return:
 // None
-func GetHandleDefaultRoute(ctx *gin.Context) {
+func getHandleDefaultRoute(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{
 		"message": "the weather is quite sad.",
 	})

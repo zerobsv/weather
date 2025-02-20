@@ -13,6 +13,10 @@ server/api.key
 server/server.key
 server/server.pem
 
+api.key
+server.key
+server.pem
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 

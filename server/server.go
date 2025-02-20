@@ -10,8 +10,8 @@ func WeatherServer() {
 
 	router := gin.Default()
 
-	router.GET("/", GetHandleDefaultRoute)
-	router.GET("/weather", GetWeatherLocal)
+	router.GET("/", getHandleDefaultRoute)
+	router.GET("/weather", getWeatherLocal)
 
 	log.Println("Starting gin gonic...")
 
