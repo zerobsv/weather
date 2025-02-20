@@ -1,7 +1,6 @@
 package weather
 
 import (
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -35,7 +34,8 @@ func GetWeatherLocal(ctx *gin.Context) {
 
 	client := http.Client{Timeout: time.Duration(2) * time.Second}
 
-	var requestUrl = "http://api.weatherstack.com/current?access_key=" + string(apiKey) + "& query = Bengaluru"
+	var requestUrl = "http://api.weatherstack.com/current?access_key=" + string(apiKey) + "&query=Bengaluru"
+	log.Printf("Making a GET request to %s", requestUrl)
 
 	resp, err := client.Get(requestUrl)
 
@@ -47,14 +47,7 @@ func GetWeatherLocal(ctx *gin.Context) {
 
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error decoding weather data: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode weather data"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, bodyBytes)
+	ctx.JSON(http.StatusOK, resp.Body)
 
 }
 

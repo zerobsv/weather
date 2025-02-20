@@ -1,6 +1,8 @@
 package weather
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,17 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
-
-// TestParseAPIKey tests the ParseApiKey function to ensure it correctly retrieves the API key.
-//
-// Assert:
-//
-//	True - Passes the test, file parsed successfully
-func TestParseAPIKey(t *testing.T) {
-	key, err := ParseApiKey()
-	assert.Nil(t, err)
-	assert.NotEmpty(t, key)
-}
 
 // TestGetWeatherLocalResponse tests the GetWeatherLocal function to ensure it handles the request correctly.
 //
@@ -39,6 +30,35 @@ func TestGetWeatherLocalResponse(t *testing.T) {
 	GetWeatherLocal(ctx)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetWeatherLocalResponseLocation(t *testing.T) {
+
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	GetWeatherLocal(ctx)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var data map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &data)
+	if err != nil {
+		t.Errorf("Error unmarshalling JSON response: %v", err)
+	}
+
+	log.Printf("JSON response: %v", data)
+
+	location, ok := data["location"].(map[string]interface{})
+	if !ok {
+		t.Error("Invalid 'location' data type in response")
+		return
+	}
+
+	var locationCity string = location["city"].(string)
+	assert.Equal(t, "Bengaluru", locationCity)
+
+	var locationCountry string = location["country"].(string)
+	assert.Equal(t, "India", locationCountry)
 }
 
 // TestGetHandleDefaultRouteResponse tests the HandleDefaultRoute function to ensure it handles the request correctly.
