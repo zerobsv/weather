@@ -1,9 +1,9 @@
 name: weather server
 
 on:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
   pull_request:
     branches:
@@ -73,4 +73,3 @@ jobs:
           go mod tidy
           go build -o weather_server main.go
           chmod 555 weather_server
-
