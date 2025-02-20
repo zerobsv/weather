@@ -10,12 +10,7 @@ func WeatherServer() {
 
 	router := gin.Default()
 
-	router.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "the weather is quite sad.",
-		})
-	})
-
+	router.GET("/", GetHandleDefaultRoute)
 	router.GET("/weather", GetWeatherLocal)
 
 	log.Println("Starting gin gonic...")

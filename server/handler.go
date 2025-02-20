@@ -75,3 +75,17 @@ func ParseApiKey() (string, error) {
 	}
 	return string(file), nil
 }
+
+// HandleDefaultRoute handles the default route of the application.
+// It responds with a JSON object containing a message.
+//
+// Parameters:
+// ctx (gin.Context): The Gin context containing request and response objects.
+//
+// Return:
+// None
+func GetHandleDefaultRoute(ctx *gin.Context) {
+	ctx.JSON(200, gin.H{
+		"message": "the weather is quite sad.",
+	})
+}
