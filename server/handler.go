@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// getWeatherLocal retrieves the current weather data for Bengaluru using the WeatherStack API.
+// GetWeatherLocal retrieves the current weather data for Bengaluru using the WeatherStack API.
 //
 // The function sends a GET request to the WeatherStack API with the specified access key and query parameters.
 // It handles potential errors during the request and response processing.
@@ -22,9 +22,9 @@ import (
 //
 // Return: weather data for the current location as a JSON string
 // None
-func getWeatherLocal(ctx *gin.Context) {
+func GetWeatherLocal(ctx *gin.Context) {
 
-	var apiKey, err = parseApiKey()
+	var apiKey, err = ParseApiKey()
 	if err != nil {
 		log.Fatalf("Error reading API key: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read API key"})
@@ -58,7 +58,7 @@ func getWeatherLocal(ctx *gin.Context) {
 
 }
 
-// parse_api_key reads the API key from a file and returns it.
+// ParseApiKey reads the API key from a file and returns it.
 //
 // The function opens the file "./api.key" and reads its contents.
 // If the file cannot be opened or read, an error is returned.
@@ -67,7 +67,7 @@ func getWeatherLocal(ctx *gin.Context) {
 // None
 //
 // Return: the api key as a string
-func parseApiKey() (string, error) {
+func ParseApiKey() (string, error) {
 	// Parse API key from file and return it
 	file, err := os.ReadFile("./api.key")
 	if err != nil {

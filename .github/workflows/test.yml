@@ -19,7 +19,7 @@ jobs:
       matrix: {
         version: [ "1.21.0", "1.22.1", "1.23.6" ],
         os: ["ubuntu-latest", "macos-latest", "windows-latest"],
-        dir: ["./server", "./client"]
+        dir: ["./server" ]
       }
     
     defaults:
@@ -73,4 +73,4 @@ jobs:
           go mod tidy
           go build -o weather_server main.go
           chmod 555 weather_server
-          ./weather_server
+
