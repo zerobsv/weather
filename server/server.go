@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func weatherServer() {
+func WeatherServer() {
 
 	router := gin.Default()
 

@@ -1,9 +1,9 @@
 package main
 
-import(
+import (
 	server "github.com/neobsv/weather/server"
 )
 
 func main() {
-	server.weatherServer()
+	server.WeatherServer()
 }

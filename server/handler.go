@@ -26,7 +26,7 @@ func getWeatherLocal(ctx *gin.Context) {
 
 	var apiKey, err = parseApiKey()
 	if err != nil {
-		log.Fatal("Error reading API key: %v", err)
+		log.Fatalf("Error reading API key: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read API key"})
 		return
 	}
@@ -40,7 +40,7 @@ func getWeatherLocal(ctx *gin.Context) {
 	resp, err := client.Get(requestUrl)
 
 	if err != nil {
-		log.Fatal("Error fetching weather data: %v", err)
+		log.Fatalf("Error fetching weather data: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weather data"})
 		return
 	}
@@ -49,7 +49,7 @@ func getWeatherLocal(ctx *gin.Context) {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("Error decoding weather data: %v", err)
+		log.Fatalf("Error decoding weather data: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode weather data"})
 		return
 	}
