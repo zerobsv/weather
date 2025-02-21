@@ -35,6 +35,8 @@ type WeatherData struct {
 // None
 func getWeatherLocal(ctx *gin.Context) {
 
+	city := ctx.Query("location")
+
 	var apiKey, err = parseApiKey()
 	if err != nil {
 		log.Fatalf("Error reading API key: %v", err)
@@ -46,7 +48,7 @@ func getWeatherLocal(ctx *gin.Context) {
 
 	client := http.Client{Timeout: time.Duration(2) * time.Second}
 
-	requestUrl := fmt.Sprintf("http://api.weatherstack.com/current?access_key=%s&query=%s", apiKey, "Bengaluru")
+	requestUrl := fmt.Sprintf("http://api.weatherstack.com/current?access_key=%s&query=%s", apiKey, city)
 
 	log.Printf("Making a GET request to %s", requestUrl)
 
@@ -79,6 +81,7 @@ func getWeatherLocal(ctx *gin.Context) {
 		"city":        weatherData.Location.Name,
 		"country":     weatherData.Location.Country,
 		"temperature": fmt.Sprint(weatherData.Current.Temperature),
+		"description": "who really cares anyway?",
 	})
 
 }
