@@ -37,6 +37,8 @@ func getWeatherLocal(ctx *gin.Context) {
 
 	city := ctx.Query("location")
 
+	log.Printf("city param: %v", city)
+
 	var apiKey, err = parseApiKey()
 	if err != nil {
 		log.Fatalf("Error reading API key: %v", err)

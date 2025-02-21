@@ -32,10 +32,21 @@ func TestGetWeatherLocalResponse(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// TestGetWeatherLocalResponseLocation tests the getWeatherLocal function with a location query parameter.
+// It verifies the function's response code, JSON response, and specific fields in the response.
+//
+// Parameters:
+//
+//	t *testing.T - The testing.T instance for the test.
+//
+// Return:
+//
+//	None
 func TestGetWeatherLocalResponseLocation(t *testing.T) {
-
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather?location=Bengaluru", nil)
+
 	getWeatherLocal(ctx)
 
 	assert.Equal(t, http.StatusOK, w.Code)
