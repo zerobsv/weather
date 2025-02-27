@@ -8,7 +8,7 @@ COPY . .
 RUN go get .
 RUN go mod tidy
 RUN go build -o weather_server main.go
-RUN chmod 500 weather_server
+RUN chmod 555 weather_server
 
 FROM debian:bookworm-slim
 COPY --from=build /app .
