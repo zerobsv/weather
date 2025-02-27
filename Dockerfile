@@ -12,6 +12,9 @@ RUN chmod 555 weather_server
 
 FROM debian:bookworm-slim
 COPY --from=build /app .
+
 RUN useradd -u 1001 new_user
 USER new_user
+
+EXPOSE 8080
 CMD ["./weather_server"]
