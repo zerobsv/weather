@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -50,38 +52,38 @@ type WeatherData struct {
 // WeatherData: A struct containing the parsed weather data.
 // error: An error if any occurred during the request or response processing.
 func sendWeatherStackRequest(location string) (WeatherData, error) {
-    var apiKey, err = parseApiKey()
-    if err != nil {
-        return WeatherData{}, fmt.Errorf("could not parse api key %v", err)
-    }
+	var apiKey, err = parseApiKey()
+	if err != nil {
+		return WeatherData{}, fmt.Errorf("could not parse api key %v", err)
+	}
 
-    client := http.Client{Timeout: time.Duration(2) * time.Second}
+	client := http.Client{Timeout: time.Duration(2) * time.Second}
 
-    requestUrl := fmt.Sprintf("http://api.weatherstack.com/current?access_key=%s&query=%s", apiKey, location)
+	requestUrl := fmt.Sprintf("http://api.weatherstack.com/current?access_key=%s&query=%s", apiKey, location)
 
-    log.Printf("Making a GET request to %s", requestUrl)
+	log.Printf("Making a GET request to %s", requestUrl)
 
-    resp, err := client.Get(requestUrl)
+	resp, err := client.Get(requestUrl)
 
-    if resp.StatusCode != http.StatusOK {
-        return WeatherData{}, fmt.Errorf("weather API request failed to %s: %v", requestUrl, err)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return WeatherData{}, fmt.Errorf("weather API request failed to %s: %v", requestUrl, err)
+	}
 
-    log.Printf("response: %v", resp)
+	log.Printf("response: %v", resp)
 
-    if err != nil {
-        return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
-    }
+	if err != nil {
+		return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
+	}
 
-    defer resp.Body.Close()
+	defer resp.Body.Close()
 
-    var weatherData WeatherData
-    err = json.NewDecoder(resp.Body).Decode(&weatherData)
-    if err != nil {
-        return WeatherData{}, fmt.Errorf("error unmarshalling JSON response: %v", err)
-    }
+	var weatherData WeatherData
+	err = json.NewDecoder(resp.Body).Decode(&weatherData)
+	if err != nil {
+		return WeatherData{}, fmt.Errorf("error unmarshalling JSON response: %v", err)
+	}
 
-    return weatherData, nil
+	return weatherData, nil
 }
 
 // getWeatherInternational retrieves the current weather data for a specified international location using the WeatherStack API.
@@ -97,27 +99,26 @@ func sendWeatherStackRequest(location string) (WeatherData, error) {
 // If an error occurs during the request or response processing, an HTTP 500 status code is returned with an error message in the response body.
 func getWeatherInternational(ctx *gin.Context) {
 
-    city := ctx.Param("location")
+	city := ctx.Param("location")
 
-    log.Printf("city param: %v", city)
+	log.Printf("city param: %v", city)
 
-    weatherData, err := sendWeatherStackRequest(city)
+	weatherData, err := sendWeatherStackRequest(city)
 
-    if err != nil {
-        log.Printf("Error fetching weather data: %v", err)
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weather data"})
-        return
-    }
+	if err != nil {
+		log.Printf("Error fetching weather data: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weather data"})
+		return
+	}
 
-    log.Println("Weather data: ", weatherData)
+	log.Println("Weather data: ", weatherData)
 
-    ctx.JSON(http.StatusOK, gin.H{
-        "city":        weatherData.Location.Name,
-        "country":     weatherData.Location.Country,
-        "temperature": fmt.Sprint(weatherData.Current.Temperature),
-        "description": "who really cares anyway?",
-
-    })
+	ctx.JSON(http.StatusOK, gin.H{
+		"city":        weatherData.Location.Name,
+		"country":     weatherData.Location.Country,
+		"temperature": fmt.Sprint(weatherData.Current.Temperature),
+		"description": strings.Join(weatherData.Current.WeatherDescriptions, ", "),
+	})
 
 }
 
@@ -153,8 +154,84 @@ func getWeatherLocal(ctx *gin.Context) {
 		"city":        weatherData.Location.Name,
 		"country":     weatherData.Location.Country,
 		"temperature": fmt.Sprint(weatherData.Current.Temperature),
-		"description": "who really cares anyway?",
+		"description": strings.Join(weatherData.Current.WeatherDescriptions, ", "),
 	})
+
+}
+
+type SharedQueue struct {
+	mutex sync.Mutex
+	data  []WeatherData
+}
+
+func (q *SharedQueue) Push(data WeatherData) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	q.data = append(q.data, data)
+}
+
+func (q *SharedQueue) GetAll() []WeatherData {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	results := make([]WeatherData, 0, len(q.data))
+	results = append(results, q.data...)
+
+	return results
+}
+
+func stressTestHelper(location string, sq *SharedQueue) {
+
+	weatherData, err := sendWeatherStackRequest(location)
+
+	if err != nil {
+		log.Printf("Error fetching weather data for %s: %v", location, err)
+		return
+	}
+
+	sq.Push(weatherData)
+
+}
+
+func getWeatherStressTest(ctx *gin.Context) {
+	var wg sync.WaitGroup
+	cities := []string{"Bengaluru", "New York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio de Janeiro", "Miami", "Sao Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos Aires", "Bangkok", "Singapore", "Sydney", "Shanghai"}
+
+	// repetitions := 10
+	// result := make([]string, len(cities)*repetitions)
+
+	// for i := 0; i < repetitions; i++ {
+	// 	result = append(result, cities...)
+	// }
+
+	sq := &SharedQueue{}
+
+	for _, city := range cities {
+		wg.Add(1)
+		go func(city string) {
+			defer wg.Done()
+			stressTestHelper(city, sq)
+		}(city)
+	}
+
+	wg.Wait()
+
+	var stressResponse []gin.H
+
+	log.Println("All the results: ")
+	for _, data := range sq.GetAll() {
+
+		stressResponse = append(stressResponse, gin.H{
+			"city":        data.Location.Name,
+			"country":     data.Location.Country,
+			"temperature": fmt.Sprint(data.Current.Temperature),
+			"description": strings.Join(data.Current.WeatherDescriptions, ", "),
+		})
+
+		log.Println("City: ", data.Location.Name, " Country: ", data.Location.Country, " Temperature: ", fmt.Sprint(data.Current.Temperature), " Description: ", strings.Join(data.Current.WeatherDescriptions, ", "))
+	}
+
+	ctx.JSON(http.StatusOK, stressResponse)
 
 }
 
