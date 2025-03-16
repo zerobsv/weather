@@ -24,6 +24,7 @@ import (
 //
 //	None
 func TestGetWeatherLocalResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
@@ -43,9 +44,11 @@ func TestGetWeatherLocalResponse(t *testing.T) {
 //
 //	None
 func TestGetWeatherLocalResponseLocation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather?location=Bengaluru", nil)
+	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
 	getWeatherLocal(ctx)
 
@@ -64,8 +67,42 @@ func TestGetWeatherLocalResponseLocation(t *testing.T) {
 	assert.NotEmpty(t, data["temperature"])
 }
 
+func TestWeatherInternationalResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	ctx.Params = []gin.Param{
+		{
+			Key:   "location",
+			Value: "Tokyo",
+		},
+	}
+
+	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather/Tokyo", nil)
+
+	getWeatherInternational(ctx)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var data map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &data)
+	if err != nil {
+		t.Errorf("Error unmarshalling JSON response: %v", err)
+	}
+
+	log.Printf("JSON response: %v", data)
+
+	assert.Equal(t, "Tokyo", data["city"])
+	assert.Equal(t, "Japan", data["country"])
+	assert.NotEmpty(t, data["temperature"])
+}
+
 // TestGetHandleDefaultRouteResponse tests the HandleDefaultRoute function to ensure it handles the request correctly.
 func TestGetHandleDefaultRouteResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	getHandleDefaultRoute(ctx)

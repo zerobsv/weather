@@ -12,6 +12,7 @@ func WeatherServer() {
 
 	router.GET("/", getHandleDefaultRoute)
 	router.GET("/weather", getWeatherLocal)
+	router.GET("/weather/:location", getWeatherInternational)
 
 	log.Println("Starting gin gonic...")
 
