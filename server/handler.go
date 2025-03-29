@@ -160,7 +160,7 @@ func getWeatherLocal(ctx *gin.Context) {
 }
 
 type SharedQueue struct {
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	data  []WeatherData
 }
 
@@ -180,22 +180,37 @@ func (q *SharedQueue) GetAll() []WeatherData {
 	return results
 }
 
-func stressTestHelper(location string, sq *SharedQueue) {
+func stressTestHelper0(location string, sq *SharedQueue) error {
 
 	weatherData, err := sendWeatherStackRequest(location)
 
 	if err != nil {
 		log.Printf("Error fetching weather data for %s: %v", location, err)
-		return
+		return err
 	}
 
 	sq.Push(weatherData)
 
+	return nil
+
 }
 
-func getWeatherStressTest(ctx *gin.Context) {
+/*
+getWeatherStressTest0 performs a stress test by concurrently fetching weather data
+for a list of cities. It uses goroutines to handle each city request in parallel,
+collects the results in a shared queue, and returns a JSON response with the weather
+information for each city.
+
+Parameters:
+- ctx: The Gin context used to handle the HTTP request and response.
+
+The function logs the weather data for each city and sends a JSON response with
+the city name, country, temperature, and weather description.
+*/
+func getWeatherStressTest0(ctx *gin.Context) {
 	var wg sync.WaitGroup
-	cities := []string{"Bengaluru", "New York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio de Janeiro", "Miami", "Sao Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos Aires", "Bangkok", "Singapore", "Sydney", "Shanghai"}
+
+	cities := []string{"Bengaluru", "New York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
 
 	// repetitions := 10
 	// result := make([]string, len(cities)*repetitions)
@@ -210,7 +225,10 @@ func getWeatherStressTest(ctx *gin.Context) {
 		wg.Add(1)
 		go func(city string) {
 			defer wg.Done()
-			stressTestHelper(city, sq)
+			err := stressTestHelper0(city, sq)
+			if err != nil {
+				log.Printf("Weather fetch failed for city: %s", city)
+			}
 		}(city)
 	}
 
@@ -220,6 +238,63 @@ func getWeatherStressTest(ctx *gin.Context) {
 
 	log.Println("All the results: ")
 	for _, data := range sq.GetAll() {
+
+		stressResponse = append(stressResponse, gin.H{
+			"city":        data.Location.Name,
+			"country":     data.Location.Country,
+			"temperature": fmt.Sprint(data.Current.Temperature),
+			"description": strings.Join(data.Current.WeatherDescriptions, ", "),
+		})
+
+		log.Println("City: ", data.Location.Name, " Country: ", data.Location.Country, " Temperature: ", fmt.Sprint(data.Current.Temperature), " Description: ", strings.Join(data.Current.WeatherDescriptions, ", "))
+	}
+
+	ctx.JSON(http.StatusOK, stressResponse)
+
+}
+
+func stressTestHelper1(location string, c chan WeatherData) error {
+
+	weatherData, err := sendWeatherStackRequest(location)
+
+	if err != nil {
+		log.Printf("Error fetching weather data for %s: %v", location, err)
+		return err
+	}
+
+	c <- weatherData
+
+	return nil
+}
+
+func getWeatherStressTest1(ctx *gin.Context) {
+
+	cities := []string{"Bengaluru", "New York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+
+	// repetitions := 10
+	// result := make([]string, len(cities)*repetitions)
+
+	// for i := 0; i < repetitions; i++ {
+	// 	result = append(result, cities...)
+	// }
+
+	channels := make(chan WeatherData, len(cities))
+
+	for _, city := range cities {
+		go func(city string) {
+			err := stressTestHelper1(city, channels)
+			if err != nil {
+				log.Printf("Weather fetch failed for city: %s", city)
+			}
+		}(city)
+	}
+
+	var stressResponse []gin.H
+
+	log.Println("All the results: ")
+	for i := 0; i < len(cities); i++ {
+
+		data := <-channels
 
 		stressResponse = append(stressResponse, gin.H{
 			"city":        data.Location.Name,

@@ -99,7 +99,7 @@ func TestWeatherInternationalResponse(t *testing.T) {
 	assert.NotEmpty(t, data["temperature"])
 }
 
-func TestWeatherStressResponse(t *testing.T) {
+func TestWeatherStressResponse0(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	w := httptest.NewRecorder()
@@ -107,7 +107,31 @@ func TestWeatherStressResponse(t *testing.T) {
 
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherStressTest(ctx)
+	getWeatherStressTest0(ctx)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	log.Printf("Body: %v", w.Body)
+
+	var data []map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &data)
+	if err != nil {
+		t.Errorf("Error unmarshalling JSON response: %v", err)
+	}
+
+	log.Printf("JSON response: %v", data)
+
+}
+
+func TestWeatherStressResponse1(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
+
+	getWeatherStressTest1(ctx)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
