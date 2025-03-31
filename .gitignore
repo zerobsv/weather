@@ -9,6 +9,7 @@
 *.out
 
 # certs
+server/api.key
 server/server.key
 server/server.pem
 
