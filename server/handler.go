@@ -307,7 +307,6 @@ func stressTestHelper1(location string, c chan WeatherData) error {
 }
 
 func getWeatherStressTest1(ctx *gin.Context) {
-	var wg sync.WaitGroup
 
 	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
 
@@ -321,9 +320,7 @@ func getWeatherStressTest1(ctx *gin.Context) {
 	channel := make(chan WeatherData, len(cities))
 
 	for _, city := range cities {
-		wg.Add(1)
 		go func(city string) {
-			defer wg.Done()
 			err := stressTestHelper1(city, channel)
 			if err != nil {
 				log.Printf("Weather fetch failed for city: %s", city)
@@ -331,8 +328,7 @@ func getWeatherStressTest1(ctx *gin.Context) {
 		}(city)
 	}
 
-	wg.Wait()
-	close(channel)
+	defer close(channel)
 
 	var stressResponse []gin.H
 
