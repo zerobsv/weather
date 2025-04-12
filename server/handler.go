@@ -279,38 +279,6 @@ func getWeatherLocal(ctx *gin.Context) {
 
 }
 
-type SharedQueue struct {
-	mutex sync.RWMutex
-	data  []WeatherData
-
-	// Mutex to facilitate HackyCheck
-	NotifyMutex sync.RWMutex
-	notify      bool
-}
-
-func (q *SharedQueue) Push(data WeatherData) {
-
-	q.mutex.Lock()
-
-	q.NotifyMutex.Lock()
-	q.notify = true
-	q.NotifyMutex.Unlock()
-
-	q.data = append(q.data, data)
-	q.mutex.Unlock()
-
-}
-
-func (q *SharedQueue) GetAll() []WeatherData {
-	q.mutex.RLock()
-	defer q.mutex.RUnlock()
-
-	results := make([]WeatherData, 0, len(q.data))
-	results = append(results, q.data...)
-
-	return results
-}
-
 func stressTestHelper0(location string, sq *SharedQueue) error {
 
 	weatherData, err := sendWeatherStackRequest(location)
@@ -450,30 +418,6 @@ func getWeatherStressTest1(ctx *gin.Context) {
 
 }
 
-func (q *SharedQueue) GetLength() int {
-	q.mutex.RLock()
-	defer q.mutex.RUnlock()
-
-	return len(q.data)
-}
-
-func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
-	results := make([]WeatherData, 0, count)
-
-	// Barrier: Wait for queue to be populated
-	for q.GetLength() < count {
-		time.Sleep(1 * time.Nanosecond)
-	}
-
-	q.mutex.RLock()
-	defer q.mutex.RUnlock()
-
-	// Collect all the results
-	results = append(results, q.data...)
-
-	return results
-}
-
 func stressTestHelper2(location string, sq *SharedQueue) error {
 
 	weatherData, err := sendWeatherStackRequest(location)
@@ -494,15 +438,16 @@ func getWeatherStressTest2(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
 
-	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
+	temp := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	// repetitions := 10
-	// result := make([]string, len(cities)*repetitions)
+	repetitions := 10
+	result := make([]string, len(temp)*repetitions)
 
-	// for i := 0; i < repetitions; i++ {
-	// 	result = append(result, cities...)
-	// }
+	for i := 0; i < repetitions; i++ {
+		result = append(result, temp...)
+	}
 
+	cities := result
 	sq := &SharedQueue{}
 
 	for _, city := range cities {
@@ -521,104 +466,19 @@ func getWeatherStressTest2(ctx *gin.Context) {
 	log.Println("All the results: ")
 	for _, data := range results {
 
+		// description produces a BoundsError which is not in the scope of what I'm trying to do here
 		stressResponse = append(stressResponse, gin.H{
 			"city":        data.Name,
 			"country":     data.Sys.Country,
 			"temperature": fmt.Sprint(data.Main.Temp),
-			"description": data.Weather[0].Description,
+			// "description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+		// log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
-
-}
-
-func (q *SharedQueue) HackyCheck() {
-	for q.GetLength() < 1 {
-		time.Sleep(1 * time.Nanosecond)
-	}
-}
-
-func (q *SharedQueue) Notify() {
-	q.NotifyMutex.Lock()
-	q.notify = false
-	q.NotifyMutex.Unlock()
-}
-
-func (q *SharedQueue) CheckNotify() bool {
-	q.NotifyMutex.RLock()
-	tmp := q.notify
-	q.NotifyMutex.RUnlock()
-	return !tmp
-}
-
-func (q *SharedQueue) Pop() WeatherData {
-	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
-	// Yield Barrier: Wait for at least one element to be present in the queue
-hackycheck:
-	q.HackyCheck()
-
-	// PANIC: Two goros have passed this barrier! :O
-
-	// The problem is that 1 goro traverses the happy path, and successfully gets the element,
-	// all the other goros are at this point.
-
-	// One of them gets the following write lock, and it fails, obviously because Push() hasn't been
-	// called to populate the queue yet.
-
-	// If I try to call another HackyCheck inside the write lock, it DEADLOCKS :O, obviously.
-
-	// So it looks like a barrier is inevitable :O, muhahaha no, my devious mind can do much better :E
-	// I don't give up like that, that's why I'm better than you, you morons.
-
-	// SENSITIVE LOCKING: This write lock has to be done strictly AFTER.
-	// Otherwise, it DEADLOCKS :O
-	q.mutex.Lock()
-
-	// The solution is, the first goro has to tell the others that I have already taken this value,
-	// so that they don't try to take it again. Now, go back and execute line 463.
-
-	// NOTE: HB_SENSITIVE happens before this line, other goros check the notify variable,
-	// and if it is true, then all the goros need to go back.
-
-	if q.CheckNotify() {
-		q.mutex.Unlock()
-		goto hackycheck
-	}
-
-	// OK NOW, THE PROBLEM IS THE THE FIRST GORO CANT PASS :0 :O
-	// have to leevay checknotify, to let the first one in
-
-	// AHA: Problem is, there is contention on mutex, and Push is not happening at all, before Pop.
-	// FIX: Mutex unlock after checking notify.
-
-	// I'm superior to ALL other human beings. Yield Map Reduce implemented without Google Search.
-
-	// Okay wait, not yet, there appears to be some contention after receiving the result
-
-	tmp := q.data[0]
-	q.data = q.data[1:]
-
-	// HB_SENSITIVE: Done this using notify, another locked variable, if notify is true, then all the goros need to go back.
-	q.Notify()
-
-	q.mutex.Unlock()
-
-	return tmp
-}
-
-func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
-
-	// Yield Barrier: Wait for at least one element to be present in the queue
-	for count > 0 {
-		go func() {
-			// Collect the result and pop
-			ch <- q.Pop()
-		}()
-		count--
-	}
 
 }
 
@@ -628,7 +488,7 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 	if err != nil {
 		log.Println("pushing data with err: ", weatherData)
-		sq.Push(weatherData)
+		sq.Push(WeatherData{})
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	} else {
@@ -646,7 +506,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	cities := []string{"Bengaluru", "Vienna", "Tokyo", "London", "Paris"}
+	cities := []string{"Lisbon", "Vienna", "Tokyo", "London", "Paris"}
 
 	sq := &SharedQueue{}
 
@@ -677,10 +537,10 @@ func getWeatherStressTest3(ctx *gin.Context) {
 			"city":        data.Name,
 			"country":     data.Sys.Country,
 			"temperature": fmt.Sprint(data.Main.Temp),
-			"description": data.Weather[0].Description,
+			"description": fmt.Sprint(data.Weather[0].Description),
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
 
 		log.Printf("$$$$$$$$$$$$ ITER %d $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: %v", i, sq.data)
 	}
