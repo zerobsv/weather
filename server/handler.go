@@ -208,13 +208,16 @@ type SharedQueue struct {
 }
 
 func (q *SharedQueue) Push(data WeatherData) {
+
 	q.mutex.Lock()
-	defer q.mutex.Unlock()
-	q.data = append(q.data, data)
 
 	q.NotifyMutex.Lock()
-	q.notify = false
+	q.notify = true
 	q.NotifyMutex.Unlock()
+
+	q.data = append(q.data, data)
+	q.mutex.Unlock()
+
 }
 
 func (q *SharedQueue) GetAll() []WeatherData {
@@ -453,19 +456,15 @@ func (q *SharedQueue) HackyCheck() {
 
 func (q *SharedQueue) Notify() {
 	q.NotifyMutex.Lock()
-	q.notify = true
+	q.notify = false
 	q.NotifyMutex.Unlock()
 }
 
 func (q *SharedQueue) CheckNotify() bool {
 	q.NotifyMutex.RLock()
-	defer q.NotifyMutex.RUnlock()
-
-	if q.notify {
-		return true
-	}
-
-	return false
+	tmp := q.notify
+	q.NotifyMutex.RUnlock()
+	return !tmp
 }
 
 func (q *SharedQueue) Pop() WeatherData {
@@ -490,7 +489,6 @@ hackycheck:
 	// SENSITIVE LOCKING: This write lock has to be done strictly AFTER.
 	// Otherwise, it DEADLOCKS :O
 	q.mutex.Lock()
-	defer q.mutex.Unlock()
 
 	// The solution is, the first goro has to tell the others that I have already taken this value,
 	// so that they don't try to take it again. Now, go back and execute line 463.
@@ -499,6 +497,7 @@ hackycheck:
 	// and if it is true, then all the goros need to go back.
 
 	if q.CheckNotify() {
+		q.mutex.Unlock()
 		goto hackycheck
 	}
 
@@ -506,12 +505,16 @@ hackycheck:
 	// have to leevay checknotify, to let the first one in
 
 	// AHA: Problem is, there is contention on mutex, and Push is not happening at all, before Pop.
+	// FIX: Mutex unlock after checking notify.
+	// I'm superior to ALL other human beings. Yield Map Reduce implemented without Google Search.
 
 	tmp := q.data[0]
 	q.data = q.data[1:]
 
 	// HB_SENSITIVE: Done this using notify, another locked variable, if notify is true, then all the goros need to go back.
 	q.Notify()
+
+	q.mutex.Unlock()
 
 	return tmp
 }
