@@ -351,6 +351,85 @@ func getWeatherStressTest1(ctx *gin.Context) {
 
 }
 
+func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
+	results := make([]WeatherData, 0, count)
+
+	// Barrier: Wait for queue to be populated
+	for len(q.data) < count {
+		time.Sleep(1 * time.Nanosecond)
+	}
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	// Collect results
+	for count > 0 {
+		results = append(results, q.data[0])
+		q.data = q.data[1:]
+		count--
+	}
+
+	return results
+}
+
+func stressTestHelper2(location string, sq *SharedQueue) error {
+
+	weatherData, err := sendWeatherStackRequest(location)
+
+	if err != nil {
+		log.Printf("Error fetching weather data for %s: %v", location, err)
+		return err
+	}
+
+	sq.Push(weatherData)
+
+	return nil
+
+}
+
+func getWeatherStressTest2(ctx *gin.Context) {
+
+	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+
+	// repetitions := 10
+	// result := make([]string, len(cities)*repetitions)
+
+	// for i := 0; i < repetitions; i++ {
+	// 	result = append(result, cities...)
+	// }
+
+	sq := &SharedQueue{}
+
+	for _, city := range cities {
+		go func(city string) {
+			err := stressTestHelper2(city, sq)
+			if err != nil {
+				log.Printf("Weather fetch failed for city: %s", city)
+			}
+		}(city)
+	}
+
+	results := sq.GetAllBlocking(len(cities))
+
+	var stressResponse []gin.H
+
+	log.Println("All the results: ")
+	for _, data := range results {
+
+		stressResponse = append(stressResponse, gin.H{
+			"city":        data.Name,
+			"country":     data.Sys.Country,
+			"temperature": fmt.Sprint(data.Main.Temp),
+			"description": data.Weather[0].Description,
+		})
+
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+	}
+
+	ctx.JSON(http.StatusOK, stressResponse)
+
+}
+
 // ParseApiKey reads the API key from a file and returns it.
 //
 // The function opens the file "./api.key" and reads its contents.
