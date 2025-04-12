@@ -2,7 +2,7 @@
 ERRORS FOR ADVANCED YIELDING MAP REDUCE:
 
 This is the main thing:
-1) Missing last value, blocking on channel but never receiving
+SOLVED: 1) Missing last value, blocking on channel but never receiving
 NOTE: pushing data is being called 30 times as it should be, but City: is printing only 26 times,
 meaning the channel is blocking and there is some contention in the queue.
 
@@ -28,6 +28,7 @@ runtime error: index out of range [0] with length 0
 
 
 POSSIBLE SOLUTION: Buffer Overflow, increase channel length to at least 2... done but it still fails
+SOLUTION: push one extra dummy value to the channel to pad the buffer and close it
 
 
 
@@ -163,7 +164,7 @@ type WeatherData struct {
 	Timezone   int         `json:"timezone"`
 }
 
-// sendWeatherStackRequest sends a GET request to the WeatherStack API to fetch the current weather data for a specified location.
+// sendWeatherRequest sends a GET request to the WeatherStack API to fetch the current weather data for a specified location.
 //
 // Parameters:
 // location (string): The international location for which to fetch the weather data.
@@ -171,7 +172,7 @@ type WeatherData struct {
 // Return:
 // WeatherData: A struct containing the parsed weather data.
 // error: An error if any occurred during the request or response processing.
-func sendWeatherStackRequest(location string) (WeatherData, error) {
+func sendWeatherRequest(location string) (WeatherData, error) {
 	var apiKey, err = parseApiKey()
 	if err != nil {
 		return WeatherData{}, fmt.Errorf("could not parse api key %v", err)
@@ -223,7 +224,7 @@ func getWeatherInternational(ctx *gin.Context) {
 
 	log.Printf("city param: %v", city)
 
-	weatherData, err := sendWeatherStackRequest(city)
+	weatherData, err := sendWeatherRequest(city)
 
 	if err != nil {
 		log.Printf("Error fetching weather data: %v", err)
@@ -260,7 +261,7 @@ func getWeatherLocal(ctx *gin.Context) {
 
 	log.Printf("city param: %v", city)
 
-	weatherData, err := sendWeatherStackRequest(city)
+	weatherData, err := sendWeatherRequest(city)
 
 	if err != nil {
 		log.Printf("Error fetching weather data: %v", err)
@@ -281,7 +282,7 @@ func getWeatherLocal(ctx *gin.Context) {
 
 func stressTestHelper0(location string, sq *SharedQueue) error {
 
-	weatherData, err := sendWeatherStackRequest(location)
+	weatherData, err := sendWeatherRequest(location)
 
 	if err != nil {
 		log.Println("pushing data: ", weatherData)
@@ -356,7 +357,7 @@ func getWeatherStressTest0(ctx *gin.Context) {
 
 func stressTestHelper1(location string, c chan WeatherData) error {
 
-	weatherData, err := sendWeatherStackRequest(location)
+	weatherData, err := sendWeatherRequest(location)
 
 	if err != nil {
 		c <- weatherData
@@ -420,7 +421,7 @@ func getWeatherStressTest1(ctx *gin.Context) {
 
 func stressTestHelper2(location string, sq *SharedQueue) error {
 
-	weatherData, err := sendWeatherStackRequest(location)
+	weatherData, err := sendWeatherRequest(location)
 
 	if err != nil {
 		log.Println("pushing data: ", weatherData)
@@ -484,7 +485,7 @@ func getWeatherStressTest2(ctx *gin.Context) {
 
 func stressTestHelper3(location string, sq *SharedQueue) error {
 
-	weatherData, err := sendWeatherStackRequest(location)
+	weatherData, err := sendWeatherRequest(location)
 
 	if err != nil {
 		log.Println("pushing data with err: ", weatherData)
@@ -506,9 +507,9 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	cities := []string{"Lisbon", "Vienna", "Tokyo", "London", "Paris", "London"}
+	cities := []string{"Lisbon", "Vienna", "Tokyo", "London", "Paris"}
 
-	sq := &SharedQueue{}
+	sq := &SharedQueue{notify: true}
 
 	for _, city := range cities {
 		go func(city string) {
@@ -519,7 +520,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 		}(city)
 	}
 
-	channel := make(chan WeatherData, 2)
+	channel := make(chan WeatherData, 1)
 	defer close(channel)
 
 	sq.GetAllYielding(len(cities), channel)
@@ -537,7 +538,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 			"city":        data.Name,
 			"country":     data.Sys.Country,
 			"temperature": fmt.Sprint(data.Main.Temp),
-			"description": fmt.Sprint(data.Weather[0].Description),
+			// "description": fmt.Sprint(data.Weather[0].Description),
 		})
 
 		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))

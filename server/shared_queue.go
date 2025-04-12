@@ -46,7 +46,7 @@ func (q *SharedQueue) CheckNotify() bool {
 	q.NotifyMutex.RLock()
 	tmp := q.notify
 	q.NotifyMutex.RUnlock()
-	return tmp
+	return !tmp
 }
 
 func (q *SharedQueue) Pop() WeatherData {
@@ -131,12 +131,15 @@ func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 
 	// Yield Barrier: Wait for at least one element to be present in the queue
-	for count > 0 {
+	for i := count; i > 0; i-- {
 		go func() {
 			// Collect the result and pop
 			ch <- q.Pop()
 		}()
-		count--
 	}
+
+	// Add this dummy result to facilitate the last pop
+	// length of channel buffer padding
+	ch <- WeatherData{}
 
 }
