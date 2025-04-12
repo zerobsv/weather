@@ -201,12 +201,20 @@ func getWeatherLocal(ctx *gin.Context) {
 type SharedQueue struct {
 	mutex sync.RWMutex
 	data  []WeatherData
+
+	// Mutex to facilitate HackyCheck
+	NotifyMutex sync.RWMutex
+	notify      bool
 }
 
 func (q *SharedQueue) Push(data WeatherData) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.data = append(q.data, data)
+
+	q.NotifyMutex.Lock()
+	q.notify = false
+	q.NotifyMutex.Unlock()
 }
 
 func (q *SharedQueue) GetAll() []WeatherData {
@@ -443,9 +451,27 @@ func (q *SharedQueue) HackyCheck() {
 	}
 }
 
+func (q *SharedQueue) Notify() {
+	q.NotifyMutex.Lock()
+	q.notify = true
+	q.NotifyMutex.Unlock()
+}
+
+func (q *SharedQueue) CheckNotify() bool {
+	q.NotifyMutex.RLock()
+	defer q.NotifyMutex.RUnlock()
+
+	if q.notify {
+		return true
+	}
+
+	return false
+}
+
 func (q *SharedQueue) Pop() WeatherData {
 	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
 	// Yield Barrier: Wait for at least one element to be present in the queue
+hackycheck:
 	q.HackyCheck()
 
 	// PANIC: Two goros have passed this barrier! :O
@@ -466,8 +492,26 @@ func (q *SharedQueue) Pop() WeatherData {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
+	// The solution is, the first goro has to tell the others that I have already taken this value,
+	// so that they don't try to take it again. Now, go back and execute line 463.
+
+	// NOTE: HB_SENSITIVE happens before this line, other goros check the notify variable,
+	// and if it is true, then all the goros need to go back.
+
+	if q.CheckNotify() {
+		goto hackycheck
+	}
+
+	// OK NOW, THE PROBLEM IS THE THE FIRST GORO CANT PASS :0 :O
+	// have to leevay checknotify, to let the first one in
+
+	// AHA: Problem is, there is contention on mutex, and Push is not happening at all, before Pop.
+
 	tmp := q.data[0]
 	q.data = q.data[1:]
+
+	// HB_SENSITIVE: Done this using notify, another locked variable, if notify is true, then all the goros need to go back.
+	q.Notify()
 
 	return tmp
 }
