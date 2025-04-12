@@ -116,7 +116,7 @@ func sendWeatherStackRequest(location string) (WeatherData, error) {
 
 	defer resp.Body.Close()
 
-	var weatherData WeatherData
+	weatherData := WeatherData{}
 	err = json.NewDecoder(resp.Body).Decode(&weatherData)
 	if err != nil {
 		return WeatherData{}, fmt.Errorf("error unmarshalling JSON response: %v", err)
@@ -235,6 +235,8 @@ func stressTestHelper0(location string, sq *SharedQueue) error {
 	weatherData, err := sendWeatherStackRequest(location)
 
 	if err != nil {
+		log.Println("pushing data: ", weatherData)
+		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	}
@@ -309,6 +311,8 @@ func stressTestHelper1(location string, c chan WeatherData) error {
 	weatherData, err := sendWeatherStackRequest(location)
 
 	if err != nil {
+		c <- weatherData
+		log.Println("pushing data: ", weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	}
@@ -395,6 +399,8 @@ func stressTestHelper2(location string, sq *SharedQueue) error {
 	weatherData, err := sendWeatherStackRequest(location)
 
 	if err != nil {
+		log.Println("pushing data: ", weatherData)
+		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	}
@@ -506,7 +512,10 @@ hackycheck:
 
 	// AHA: Problem is, there is contention on mutex, and Push is not happening at all, before Pop.
 	// FIX: Mutex unlock after checking notify.
+
 	// I'm superior to ALL other human beings. Yield Map Reduce implemented without Google Search.
+
+	// Okay wait, not yet, there appears to be some contention after receiving the result
 
 	tmp := q.data[0]
 	q.data = q.data[1:]
@@ -537,9 +546,13 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 	weatherData, err := sendWeatherStackRequest(location)
 
 	if err != nil {
+		log.Println("pushing data: ", weatherData)
+		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	}
+
+	log.Println("pushing data: ", weatherData)
 
 	sq.Push(weatherData)
 
@@ -549,7 +562,11 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 func getWeatherStressTest3(ctx *gin.Context) {
 
-	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+
+	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
+
+	cities := []string{"Bengaluru", "Vienna", "Tokyo", "London", "Paris"}
 
 	// repetitions := 10
 	// result := make([]string, len(cities)*repetitions)
