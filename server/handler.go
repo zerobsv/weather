@@ -437,16 +437,21 @@ func getWeatherStressTest2(ctx *gin.Context) {
 
 }
 
-func (q *SharedQueue) Pop() WeatherData {
-	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
-	// Yield Barrier: Wait for at least one element to be present in the queue
+func (q *SharedQueue) HackyCheck() {
 	for q.GetLength() < 1 {
 		time.Sleep(1 * time.Nanosecond)
 	}
+}
+
+func (q *SharedQueue) Pop() WeatherData {
+	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
+	// Yield Barrier: Wait for at least one element to be present in the queue
+	q.HackyCheck()
 
 	// PANIC: Two goros have passed this barrier! :O
 
 	// SENSITIVE LOCKING: This write lock has to be done strictly AFTER.
+	// Otherwise, it DEADLOCKS :O
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
