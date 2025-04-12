@@ -271,6 +271,7 @@ func getWeatherStressTest0(ctx *gin.Context) {
 		}(city)
 	}
 
+	// Barrier: Block until all goroutines are done, then continue, will block on long running goroutines
 	wg.Wait()
 
 	var stressResponse []gin.H
@@ -335,6 +336,9 @@ func getWeatherStressTest1(ctx *gin.Context) {
 	log.Println("All the results: ")
 	for i := 0; i < len(cities); i++ {
 
+		// CSP Advanatage: No barrier, all the channel slots are polled for data and all
+		// the goroutines which are done are processed immediately and other long running
+		// goroutines don't block while fetching the results
 		data := <-channel
 
 		stressResponse = append(stressResponse, gin.H{
@@ -366,15 +370,11 @@ func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 		time.Sleep(1 * time.Nanosecond)
 	}
 
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
 
-	// Collect results
-	for count > 0 {
-		results = append(results, q.data[0])
-		q.data = q.data[1:]
-		count--
-	}
+	// Collect all the results
+	results = append(results, q.data...)
 
 	return results
 }
@@ -422,6 +422,101 @@ func getWeatherStressTest2(ctx *gin.Context) {
 
 	log.Println("All the results: ")
 	for _, data := range results {
+
+		stressResponse = append(stressResponse, gin.H{
+			"city":        data.Name,
+			"country":     data.Sys.Country,
+			"temperature": fmt.Sprint(data.Main.Temp),
+			"description": data.Weather[0].Description,
+		})
+
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+	}
+
+	ctx.JSON(http.StatusOK, stressResponse)
+
+}
+
+func (q *SharedQueue) Pop() WeatherData {
+	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
+	// Yield Barrier: Wait for at least one element to be present in the queue
+	for q.GetLength() < 1 {
+		time.Sleep(1 * time.Nanosecond)
+	}
+
+	// PANIC: Two goros have passed this barrier! :O
+
+	// SENSITIVE LOCKING: This write lock has to be done strictly AFTER.
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	tmp := q.data[0]
+	q.data = q.data[1:]
+
+	return tmp
+}
+
+func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
+
+	// Yield Barrier: Wait for at least one element to be present in the queue
+	for count > 0 {
+		go func() {
+			// Collect the result and pop
+			ch <- q.Pop()
+		}()
+		count--
+	}
+
+}
+
+func stressTestHelper3(location string, sq *SharedQueue) error {
+
+	weatherData, err := sendWeatherStackRequest(location)
+
+	if err != nil {
+		log.Printf("Error fetching weather data for %s: %v", location, err)
+		return err
+	}
+
+	sq.Push(weatherData)
+
+	return nil
+
+}
+
+func getWeatherStressTest3(ctx *gin.Context) {
+
+	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+
+	// repetitions := 10
+	// result := make([]string, len(cities)*repetitions)
+
+	// for i := 0; i < repetitions; i++ {
+	// 	result = append(result, cities...)
+	// }
+
+	sq := &SharedQueue{}
+
+	for _, city := range cities {
+		go func(city string) {
+			err := stressTestHelper3(city, sq)
+			if err != nil {
+				log.Printf("Weather fetch failed for city: %s", city)
+			}
+		}(city)
+	}
+
+	channel := make(chan WeatherData)
+	defer close(channel)
+
+	sq.GetAllYielding(len(cities), channel)
+
+	var stressResponse []gin.H
+
+	log.Println("All the results: ")
+	for i := 0; i < len(cities); i++ {
+
+		data := <-channel
 
 		stressResponse = append(stressResponse, gin.H{
 			"city":        data.Name,

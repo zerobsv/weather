@@ -17,6 +17,7 @@ func WeatherServer() {
 	router.GET("/weather/stress0", getWeatherStressTest0)
 	router.GET("/weather/stress1", getWeatherStressTest1)
 	router.GET("/weather/stress2", getWeatherStressTest2)
+	router.GET("/weather/stress3", getWeatherStressTest3)
 
 	log.Println("Starting gin gonic...")
 
