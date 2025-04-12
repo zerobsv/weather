@@ -63,7 +63,7 @@ func TestGetWeatherLocalResponseLocation(t *testing.T) {
 	log.Printf("JSON response: %v", data)
 
 	assert.Equal(t, "Bengaluru", data["city"])
-	assert.Equal(t, "India", data["country"])
+	assert.Equal(t, "IN", data["country"])
 	assert.NotEmpty(t, data["temperature"])
 }
 
@@ -95,7 +95,7 @@ func TestWeatherInternationalResponse(t *testing.T) {
 	log.Printf("JSON response: %v", data)
 
 	assert.Equal(t, "Tokyo", data["city"])
-	assert.Equal(t, "Japan", data["country"])
+	assert.Equal(t, "JP", data["country"])
 	assert.NotEmpty(t, data["temperature"])
 }
 

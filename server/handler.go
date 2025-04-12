@@ -13,34 +13,73 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Coordinates struct {
+	Longitude float64 `json:"lon"`
+	Latitude  float64 `json:"lat"`
+}
+
+type Weather struct {
+	ID          int    `json:"id"`
+	Main        string `json:"main"`
+	Description string `json:"description"`
+	Icon        string `json:"icon"`
+}
+
+type Main struct {
+	Temp      float64 `json:"temp"`
+	TempMin   float64 `json:"temp_min"`
+	TempMax   float64 `json:"temp_max"`
+	FeelsLike float64 `json:"feels_like"`
+	Pressure  float64 `json:"pressure"`
+	SeaLevel  float64 `json:"sea_level"`
+	GrndLevel float64 `json:"grnd_level"`
+	Humidity  int     `json:"humidity"`
+}
+
+type Wind struct {
+	Speed float64 `json:"speed"`
+	Deg   float64 `json:"deg"`
+}
+
+type Clouds struct {
+	All int `json:"all"`
+}
+
+type Rain struct {
+	OneH   float64 `json:"1h,omitempty"`
+	ThreeH float64 `json:"3h,omitempty"`
+}
+
+type Snow struct {
+	OneH   float64 `json:"1h,omitempty"`
+	ThreeH float64 `json:"3h,omitempty"`
+}
+
+type Sys struct {
+	Type    int     `json:"type"`
+	ID      int     `json:"id"`
+	Message float64 `json:"message"`
+	Country string  `json:"country"`
+	Sunrise int     `json:"sunrise"`
+	Sunset  int     `json:"sunset"`
+}
+
 type WeatherData struct {
-	Location struct {
-		Name      string `json:"name"`
-		Country   string `json:"country"`
-		Region    string `json:"region"`
-		Lat       string `json:"lat"`
-		Lon       string `json:"lon"`
-		Timezone  string `json:"timezone"`
-		Localtime string `json:"localtime"`
-		Epoch     int    `json:"epoch"`
-		Offset    string `json:"offset"`
-	} `json:"location"`
-	Current struct {
-		ObservationTime     string   `json:"observation_time"`
-		Temperature         int      `json:"temperature"`
-		WeatherCode         int      `json:"weather_code"`
-		WeatherDescriptions []string `json:"weather_descriptions"`
-		WindSpeed           int      `json:"wind_speed"`
-		WindDegree          int      `json:"wind_degree"`
-		WindDirection       string   `json:"wind_dir"`
-		Pressure            int      `json:"pressure"`
-		Precipitation       int      `json:"precip"`
-		Humidity            int      `json:"humidity"`
-		Cloudcover          int      `json:"cloudcover"`
-		FeelsLike           int      `json:"feelslike"`
-		UvIndex             int      `json:"uv_index"`
-		Visibility          int      `json:"visibility"`
-	} `json:"current"`
+	GeoPos     Coordinates `json:"coord"`
+	Sys        Sys         `json:"sys"`
+	Base       string      `json:"base"`
+	Weather    []Weather   `json:"weather"`
+	Main       Main        `json:"main"`
+	Visibility int         `json:"visibility"`
+	Wind       Wind        `json:"wind"`
+	Clouds     Clouds      `json:"clouds"`
+	Rain       Rain        `json:"rain"`
+	Snow       Snow        `json:"snow"`
+	Dt         int         `json:"dt"`
+	ID         int         `json:"id"`
+	Name       string      `json:"name"`
+	Cod        int         `json:"cod"`
+	Timezone   int         `json:"timezone"`
 }
 
 // sendWeatherStackRequest sends a GET request to the WeatherStack API to fetch the current weather data for a specified location.
@@ -59,20 +98,20 @@ func sendWeatherStackRequest(location string) (WeatherData, error) {
 
 	client := http.Client{Timeout: time.Duration(2) * time.Second}
 
-	requestUrl := fmt.Sprintf("http://api.weatherstack.com/current?access_key=%s&query=%s", apiKey, location)
+	requestUrl := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
 	log.Printf("Making a GET request to %s", requestUrl)
 
 	resp, err := client.Get(requestUrl)
 
-	if resp.StatusCode != http.StatusOK {
-		return WeatherData{}, fmt.Errorf("weather API request failed to %s: %v", requestUrl, err)
-	}
-
 	log.Printf("response: %v", resp)
 
 	if err != nil {
 		return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return WeatherData{}, fmt.Errorf("weather API request failed to %s: %v", requestUrl, err)
 	}
 
 	defer resp.Body.Close()
@@ -114,10 +153,10 @@ func getWeatherInternational(ctx *gin.Context) {
 	log.Println("Weather data: ", weatherData)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"city":        weatherData.Location.Name,
-		"country":     weatherData.Location.Country,
-		"temperature": fmt.Sprint(weatherData.Current.Temperature),
-		"description": strings.Join(weatherData.Current.WeatherDescriptions, ", "),
+		"city":        weatherData.Name,
+		"country":     weatherData.Sys.Country,
+		"temperature": fmt.Sprint(weatherData.Main.Temp),
+		"description": weatherData.Weather[0].Description,
 	})
 
 }
@@ -151,10 +190,10 @@ func getWeatherLocal(ctx *gin.Context) {
 	log.Println("Weather data: ", weatherData)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"city":        weatherData.Location.Name,
-		"country":     weatherData.Location.Country,
-		"temperature": fmt.Sprint(weatherData.Current.Temperature),
-		"description": strings.Join(weatherData.Current.WeatherDescriptions, ", "),
+		"city":        weatherData.Name,
+		"country":     weatherData.Sys.Country,
+		"temperature": fmt.Sprint(weatherData.Main.Temp),
+		"description": weatherData.Weather[0].Description,
 	})
 
 }
@@ -240,13 +279,13 @@ func getWeatherStressTest0(ctx *gin.Context) {
 	for _, data := range sq.GetAll() {
 
 		stressResponse = append(stressResponse, gin.H{
-			"city":        data.Location.Name,
-			"country":     data.Location.Country,
-			"temperature": fmt.Sprint(data.Current.Temperature),
-			"description": strings.Join(data.Current.WeatherDescriptions, ", "),
+			"city":        data.Name,
+			"country":     data.Sys.Country,
+			"temperature": fmt.Sprint(data.Main.Temp),
+			"description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Location.Name, " Country: ", data.Location.Country, " Temperature: ", fmt.Sprint(data.Current.Temperature), " Description: ", strings.Join(data.Current.WeatherDescriptions, ", "))
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
@@ -268,6 +307,7 @@ func stressTestHelper1(location string, c chan WeatherData) error {
 }
 
 func getWeatherStressTest1(ctx *gin.Context) {
+	var wg sync.WaitGroup
 
 	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
 
@@ -278,32 +318,37 @@ func getWeatherStressTest1(ctx *gin.Context) {
 	// 	result = append(result, cities...)
 	// }
 
-	channels := make(chan WeatherData, len(cities))
+	channel := make(chan WeatherData, len(cities))
 
 	for _, city := range cities {
+		wg.Add(1)
 		go func(city string) {
-			err := stressTestHelper1(city, channels)
+			defer wg.Done()
+			err := stressTestHelper1(city, channel)
 			if err != nil {
 				log.Printf("Weather fetch failed for city: %s", city)
 			}
 		}(city)
 	}
 
+	wg.Wait()
+	close(channel)
+
 	var stressResponse []gin.H
 
 	log.Println("All the results: ")
 	for i := 0; i < len(cities); i++ {
 
-		data := <-channels
+		data := <-channel
 
 		stressResponse = append(stressResponse, gin.H{
-			"city":        data.Location.Name,
-			"country":     data.Location.Country,
-			"temperature": fmt.Sprint(data.Current.Temperature),
-			"description": strings.Join(data.Current.WeatherDescriptions, ", "),
+			"city":        data.Name,
+			"country":     data.Sys.Country,
+			"temperature": fmt.Sprint(data.Main.Temp),
+			"description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Location.Name, " Country: ", data.Location.Country, " Temperature: ", fmt.Sprint(data.Current.Temperature), " Description: ", strings.Join(data.Current.WeatherDescriptions, ", "))
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
@@ -325,7 +370,7 @@ func parseApiKey() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(file), nil
+	return strings.TrimSpace(string(file)), nil
 }
 
 // HandleDefaultRoute handles the default route of the application.
