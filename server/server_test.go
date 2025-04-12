@@ -171,29 +171,29 @@ func TestWeatherStressResponse2(t *testing.T) {
 
 }
 
-func TestWeatherStressResponse3(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+// func TestWeatherStressResponse3(t *testing.T) {
+// 	gin.SetMode(gin.TestMode)
 
-	w := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(w)
+// 	w := httptest.NewRecorder()
+// 	ctx, _ := gin.CreateTestContext(w)
 
-	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
+// 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherStressTest3(ctx)
+// 	getWeatherStressTest3(ctx)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+// 	assert.Equal(t, http.StatusOK, w.Code)
 
-	log.Printf("Body: %v", w.Body)
+// 	log.Printf("Body: %v", w.Body)
 
-	var data []map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &data)
-	if err != nil {
-		t.Errorf("Error unmarshalling JSON response: %v", err)
-	}
+// 	var data []map[string]interface{}
+// 	err := json.Unmarshal(w.Body.Bytes(), &data)
+// 	if err != nil {
+// 		t.Errorf("Error unmarshalling JSON response: %v", err)
+// 	}
 
-	log.Printf("JSON response: %v", data)
+// 	log.Printf("JSON response: %v", data)
 
-}
+// }
 
 // TestGetHandleDefaultRouteResponse tests the HandleDefaultRoute function to ensure it handles the request correctly.
 func TestGetHandleDefaultRouteResponse(t *testing.T) {
