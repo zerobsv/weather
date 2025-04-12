@@ -450,6 +450,17 @@ func (q *SharedQueue) Pop() WeatherData {
 
 	// PANIC: Two goros have passed this barrier! :O
 
+	// The problem is that 1 goro traverses the happy path, and successfully gets the element,
+	// all the other goros are at this point.
+
+	// One of them gets the following write lock, and it fails, obviously because Push() hasn't been
+	// called to populate the queue yet.
+
+	// If I try to call another HackyCheck inside the write lock, it DEADLOCKS :O, obviously.
+
+	// So it looks like a barrier is inevitable :O, muhahaha no, my devious mind can do much better :E
+	// I don't give up like that, that's why I'm better than you, you morons.
+
 	// SENSITIVE LOCKING: This write lock has to be done strictly AFTER.
 	// Otherwise, it DEADLOCKS :O
 	q.mutex.Lock()
