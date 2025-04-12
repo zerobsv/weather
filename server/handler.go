@@ -506,7 +506,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	cities := []string{"Lisbon", "Vienna", "Tokyo", "London", "Paris"}
+	cities := []string{"Lisbon", "Vienna", "Tokyo", "London", "Paris", "London"}
 
 	sq := &SharedQueue{}
 
