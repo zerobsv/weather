@@ -27,11 +27,11 @@ runtime error: index out of range [0] with length 0
         (*Context).Next: c.handlers[c.index](c)
 
 
+POSSIBLE SOLUTION: Buffer Overflow, increase channel length to at least 2... done but it still fails
 
 
 
-
-2) Panic send on closed channel
+SOLVED: 2) Panic send on closed channel
 
 2025/04/12 12:48:03 response: &{200 OK 200 HTTP/1.1 1 1 map[Access-Control-Allow-Credentials:[true] Access-Control-Allow-Methods:[GET, POST] Access-Control-Allow-Origin:[*] Connection:[keep-alive] Content-Length:[599] Content-Type:[application/json; charset=utf-8] Date:[Sat, 12 Apr 2025 09:48:04 GMT] Server:[openresty] X-Cache-Key:[/data/2.5/weather?q=new%20york]] 0xc000798200 599 [] false false map[] 0xc00052c120 0xc0000e02c0}
 2025/04/12 12:48:03 pushing data:  {{-74.006 40.7143} {2 2037026 0 US 1744453279 1744500702} stations [{500 Rain light rain 10n} {701 Mist mist 50n}] {275.82 274.58 276.6 270.13 1014 1014 1012 92} 6437 {8.49 57} {100} {0.73 0} {0 0} 1744450684 5128581 New York 200 -14400}
@@ -48,6 +48,10 @@ github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding.func1()
         /mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:537 +0x68
 created by github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding in goroutine 21
         /mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:535 +0x2b
+
+
+SOLUTION: Increase timeout to 5 seconds, API side error, channel buffer increased
+
 
 
 3) Fetch failed and then it tries to decode the data
@@ -316,11 +320,10 @@ func stressTestHelper0(location string, sq *SharedQueue) error {
 		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
+	} else {
+		sq.Push(weatherData)
+		return nil
 	}
-
-	sq.Push(weatherData)
-
-	return nil
 
 }
 
@@ -392,11 +395,11 @@ func stressTestHelper1(location string, c chan WeatherData) error {
 		log.Println("pushing data: ", weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
+	} else {
+		c <- weatherData
+		return nil
 	}
 
-	c <- weatherData
-
-	return nil
 }
 
 func getWeatherStressTest1(ctx *gin.Context) {
@@ -480,17 +483,18 @@ func stressTestHelper2(location string, sq *SharedQueue) error {
 		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
+	} else {
+		sq.Push(weatherData)
+		return nil
 	}
-
-	sq.Push(weatherData)
-
-	return nil
 
 }
 
 func getWeatherStressTest2(ctx *gin.Context) {
 
-	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
+
+	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
 	// repetitions := 10
 	// result := make([]string, len(cities)*repetitions)
@@ -627,11 +631,10 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
+	} else {
+		log.Println("pushing data: ", weatherData)
+		sq.Push(weatherData)
 	}
-
-	log.Println("pushing data: ", weatherData)
-
-	sq.Push(weatherData)
 
 	return nil
 
@@ -641,9 +644,9 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
 
-	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
+	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	cities := []string{"Bengaluru", "Vienna", "Tokyo", "London", "Paris"}
+	// cities := []string{"Bengaluru", "Vienna", "Tokyo", "London", "Paris"}
 
 	sq := &SharedQueue{}
 
@@ -656,7 +659,8 @@ func getWeatherStressTest3(ctx *gin.Context) {
 		}(city)
 	}
 
-	channel := make(chan WeatherData)
+	channel := make(chan WeatherData, 5)
+	defer close(channel)
 
 	sq.GetAllYielding(len(cities), channel)
 
@@ -665,7 +669,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 	log.Println("All the results: ")
 	for i := 0; i < len(cities); i++ {
 
-		log.Println("$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS PRE: ", sq.data)
+		log.Printf("$$$$$$$$$$$$ ITER %d $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS PRE: %v", i, sq.data)
 
 		data := <-channel
 
@@ -676,14 +680,12 @@ func getWeatherStressTest3(ctx *gin.Context) {
 			"description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
 
-		log.Println("$$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: ", sq.data)
+		log.Printf("$$$$$$$$$$$$ ITER %d $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: %v", i, sq.data)
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
-
-	close(channel)
 
 }
 
