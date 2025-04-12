@@ -210,8 +210,8 @@ func (q *SharedQueue) Push(data WeatherData) {
 }
 
 func (q *SharedQueue) GetAll() []WeatherData {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
 
 	results := make([]WeatherData, 0, len(q.data))
 	results = append(results, q.data...)
@@ -351,11 +351,18 @@ func getWeatherStressTest1(ctx *gin.Context) {
 
 }
 
+func (q *SharedQueue) GetLength() int {
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
+
+	return len(q.data)
+}
+
 func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 	results := make([]WeatherData, 0, count)
 
 	// Barrier: Wait for queue to be populated
-	for len(q.data) < count {
+	for q.GetLength() < count {
 		time.Sleep(1 * time.Nanosecond)
 	}
 
