@@ -463,7 +463,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 	channel := make(chan WeatherData, 1)
 	defer close(channel)
 
-	sq.GetAllYielding(len(cities), channel)
+	go sq.GetAllYielding(len(cities), channel)
 
 	var stressResponse []gin.H
 
@@ -534,7 +534,7 @@ CI Failed: Client Timeout issues causing consumer to suspend execution.....
 2025/04/13 15:52:26 Weather fetch failed for city: Tokyo
 2025/04/13 15:52:26 $$$$$$$$$$$$ ITER 7 $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: [{{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0
 
-Solution: Decouple the requesting goroutine from the consumer
+SOLUTION: Decouple the requesting goroutine from the consumer
 
 
 
