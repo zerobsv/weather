@@ -54,7 +54,7 @@ func (q *SharedQueue) Push(data WeatherData) {
 	q.mutex.Unlock()
 }
 
-func (q *SharedQueue) HackyCheck() {
+func (q *SharedQueue) Check() {
 	for q.GetLength() < 1 {
 		time.Sleep(1 * time.Nanosecond)
 	}
@@ -76,7 +76,7 @@ func (q *SharedQueue) CheckNotify() bool {
 func (q *SharedQueue) Pop() WeatherData {
 	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
 	// Yield Barrier: Wait for at least one element to be present in the queue
-	q.HackyCheck()
+	q.Check()
 
 	// PANIC: Two goros have passed this barrier! :O
 
@@ -102,7 +102,7 @@ func (q *SharedQueue) Pop() WeatherData {
 
 	for q.CheckNotify() {
 		q.mutex.Unlock()
-		q.HackyCheck()
+		q.Check()
 		q.mutex.Lock()
 	}
 
