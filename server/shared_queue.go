@@ -21,12 +21,29 @@ func (q *SharedQueue) GetLength() int {
 	return tmp
 }
 
-func (q *SharedQueue) Push(data WeatherData) {
+func (q *SharedQueue) TryPush(data WeatherData) bool {
+
+	if q.GetLength() > 0 {
+		q.Notify()
+		return false
+	}
 
 	q.mutex.Lock()
 	q.data = append(q.data, data)
 	q.Notify()
 	q.mutex.Unlock()
+
+	return true
+
+}
+
+func (q *SharedQueue) Push(data WeatherData) {
+
+	// Ease the contention, don't push if the queue has data already
+
+	for !q.TryPush(data) {
+		time.Sleep(1 * time.Millisecond)
+	}
 
 }
 
@@ -78,8 +95,8 @@ hackycheck:
 	// and if it is true, then all the goros need to go back.
 
 	if q.CheckNotify() {
+		// time.Sleep(1 * time.Millisecond)
 		q.mutex.Unlock()
-		time.Sleep(1 * time.Millisecond)
 		goto hackycheck
 	}
 
@@ -121,8 +138,8 @@ func (q *SharedQueue) GetAll() []WeatherData {
 	return results
 }
 
+// Excellent work, works at scale!
 func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
-	// Excellent work, works at scale!
 
 	results := make([]WeatherData, 0, count)
 
@@ -152,8 +169,6 @@ func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 		count--
 	}
 
-	// Add this dummy result to facilitate the last pop
-	// length of channel buffer padding
-	ch <- WeatherData{}
+	// ch <- WeatherData{}
 
 }

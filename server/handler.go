@@ -205,14 +205,16 @@ func stressTestHelper0(location string, sq *SharedQueue) error {
 	weatherData, err := sendWeatherRequest(location)
 
 	if err != nil {
-		log.Println("pushing data: ", weatherData)
+		log.Println("pushing data with err: ", weatherData)
 		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
-	} else {
-		sq.Push(weatherData)
-		return nil
 	}
+
+	log.Println("pushing data: ", weatherData)
+	sq.Push(weatherData)
+
+	return nil
 
 }
 
@@ -344,14 +346,16 @@ func stressTestHelper2(location string, sq *SharedQueue) error {
 	weatherData, err := sendWeatherRequest(location)
 
 	if err != nil {
-		log.Println("pushing data: ", weatherData)
+		log.Println("pushing data with err: ", weatherData)
 		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
-	} else {
-		sq.Push(weatherData)
-		return nil
 	}
+
+	log.Println("pushing data: ", weatherData)
+	sq.Push(weatherData)
+
+	return nil
 
 }
 
@@ -411,13 +415,13 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 	if err != nil {
 		log.Println("pushing data with err: ", weatherData)
-		sq.Push(WeatherData{})
+		sq.Push(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
-	} else {
-		log.Println("pushing data: ", weatherData)
-		sq.Push(weatherData)
 	}
+
+	log.Println("pushing data: ", weatherData)
+	sq.Push(weatherData)
 
 	return nil
 
@@ -444,7 +448,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 		}(city)
 	}
 
-	channel := make(chan WeatherData, 2)
+	channel := make(chan WeatherData, 1)
 	defer close(channel)
 
 	sq.GetAllYielding(len(cities), channel)
@@ -510,7 +514,26 @@ func getHandleDefaultRoute(ctx *gin.Context) {
 ERRORS FOR ADVANCED YIELDING MAP REDUCE:
 
 This is the main thing:
-1) Missing last value, blocking on channel but never receiving
+
+1) 2025/04/13 13:45:10 City:    Country:    Temperature:  0
+2025/04/13 13:45:10 $$$$$$$$$$$$ ITER 29 $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: []
+2025/04/13 13:45:10 Error fetching weather data for London: weather API request failed to https://api.openweathermap.org/data/2.5/weather?q=London&appid=7c8c4670fac07e8aa7c50d45c295bf3a: <nil>
+2025/04/13 13:45:10 Weather fetch failed for city: London
+2025/04/13 13:45:10 response: &{429 Too Many Requests 429 HTTP/1.1 1 1 map[Access-Control-Allow-Credentials:[true] Access-Control-Allow-Methods:[GET, POST] Access-Control-Allow-Origin:[*] Connection:[keep-alive] Content-Length:[197] Content-Type:[application/json; charset=utf-8] Date:[Sun, 13 Apr 2025 10:45:10 GMT] Server:[openresty] X-Cache-Key:[/data/2.5/weather?q=paris]] 0xc0005d00e0 197 [] false false map[] 0xc0006ad0e0 0xc0000e06e0}
+2025/04/13 13:45:10 pushing data with err:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
+[GIN] 2025/04/13 - 13:45:10 | 200 |  256.497943ms |             ::1 | GET      "/weather/stress3"
+2025/04/13 13:45:10 Error fetching weather data for Paris: weather API request failed to https://api.openweathermap.org/data/2.5/weather?q=Paris&appid=7c8c4670fac07e8aa7c50d45c295bf3a: <nil>
+2025/04/13 13:45:10 Weather fetch failed for city: Paris
+panic: send on closed channel
+
+goroutine 511 [running]:
+github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding.func1()
+        /mnt/c/Users/munis/Desktop/github_stuff/weather/server/shared_queue.go:167 +0x68
+created by github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding in goroutine 240
+        /mnt/c/Users/munis/Desktop/github_stuff/weather/server/shared_queue.go:165 +0x3c
+
+
+SOLVED: 1) Missing last value, blocking on channel but never receiving
 NOTE: pushing data is being called 30 times as it should be, but City: is printing only 26 times,
 meaning the channel is blocking and there is some contention in the queue.
 
@@ -536,8 +559,9 @@ runtime error: index out of range [0] with length 0
 
 
 POSSIBLE SOLUTION: Buffer Overflow, increase channel length to at least 2... done but it still fails
-SOLUTION: push one extra dummy value to the channel to pad the buffer and close it
+POSSIBLESOLUTION: push one extra dummy value to the channel to pad the buffer and close it
 
+SOLUTION: Introduce TryPush, spin and wait till the consumer has read the data.
 
 
 SOLVED: 2) Panic send on closed channel
@@ -563,7 +587,7 @@ SOLUTION: Increase timeout to 5 seconds, API side error, channel buffer increase
 
 
 
-3) Fetch failed and then it tries to decode the data
+SOLVED: 3) Fetch failed and then it tries to decode the data
 
 2025/04/12 12:51:01 response: <nil>
 2025/04/12 12:51:01 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
@@ -585,5 +609,6 @@ runtime error: index out of range [0] with length 0
 /home/neobsv/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185 (0x7a1199)
         (*Context).Next: c.handlers[c.index](c)
 
+SOLUTION: Increase timeout to 5 seconds, API side error, channel buffer increased
 
 */
