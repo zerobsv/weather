@@ -79,6 +79,7 @@ hackycheck:
 
 	if q.CheckNotify() {
 		q.mutex.Unlock()
+		time.Sleep(1 * time.Millisecond)
 		goto hackycheck
 	}
 
@@ -92,6 +93,11 @@ hackycheck:
 	// FIX: add one/many dummy values after last pop to fill the chan buffer and close it.
 
 	// NOT CONFIDENT: Needs more testing, possible deadlock here.
+
+	// Problem is, consumer is not able to acquire the notify RLock, so it is deadlocked, because
+	// other goroutines are spinning between goto and the label and aggresively using check notify.
+
+	// Should we add a time delay to spin between hackycheck and check notify?
 
 	tmp := q.data[0]
 	q.data = q.data[1:]
