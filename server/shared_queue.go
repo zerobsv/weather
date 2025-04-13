@@ -178,6 +178,4 @@ func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 		count--
 	}
 
-	// ch <- WeatherData{}
-
 }

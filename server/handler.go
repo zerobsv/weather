@@ -523,7 +523,7 @@ func getHandleDefaultRoute(ctx *gin.Context) {
 ERRORS FOR ADVANCED YIELDING MAP REDUCE:
 
 
-1) 2025/04/13 13:45:10 City:    Country:    Temperature:  0
+SOLVED: 1) 2025/04/13 13:45:10 City:    Country:    Temperature:  0
 2025/04/13 13:45:10 $$$$$$$$$$$$ ITER 29 $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: []
 2025/04/13 13:45:10 Error fetching weather data for London: weather API request failed to https://api.openweathermap.org/data/2.5/weather?q=London&appid=7c8c4670fac07e8aa7c50d45c295bf3a: <nil>
 2025/04/13 13:45:10 Weather fetch failed for city: London
@@ -539,6 +539,9 @@ github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding.func1()
         /mnt/c/Users/munis/Desktop/github_stuff/weather/server/shared_queue.go:167 +0x68
 created by github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding in goroutine 240
         /mnt/c/Users/munis/Desktop/github_stuff/weather/server/shared_queue.go:165 +0x3c
+
+
+SOLUTION: We get serious, removed hackycheck and goto, made it formal and less playful.
 
 
 
