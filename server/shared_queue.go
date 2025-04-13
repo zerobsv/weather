@@ -89,6 +89,9 @@ hackycheck:
 	// FIX: Mutex unlock after checking notify.
 
 	// Okay wait, not yet, there appears to be some contention after receiving the result
+	// FIX: add one/many dummy values after last pop to fill the chan buffer and close it.
+
+	// NOT CONFIDENT: Needs more testing, possible deadlock here.
 
 	tmp := q.data[0]
 	q.data = q.data[1:]
@@ -96,6 +99,7 @@ hackycheck:
 	// HB_SENSITIVE: Done this using notify, another locked variable, if notify is true, then all the goros need to go back.
 	q.Notify()
 
+	// SENSITIVE: Do not defer this unlock, make it unlock before return
 	q.mutex.Unlock()
 
 	return tmp
@@ -112,6 +116,8 @@ func (q *SharedQueue) GetAll() []WeatherData {
 }
 
 func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
+	// Excellent work, works at scale!
+
 	results := make([]WeatherData, 0, count)
 
 	// Barrier: Wait for queue to be populated
@@ -128,14 +134,16 @@ func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 	return results
 }
 
+// NOT CONFIDENT: Needs more testing.
 func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 
 	// Yield Barrier: Wait for at least one element to be present in the queue
-	for i := count; i > 0; i-- {
+	for count > 0 {
 		go func() {
 			// Collect the result and pop
 			ch <- q.Pop()
 		}()
+		count--
 	}
 
 	// Add this dummy result to facilitate the last pop

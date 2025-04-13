@@ -1,84 +1,4 @@
-/*
-ERRORS FOR ADVANCED YIELDING MAP REDUCE:
-
-This is the main thing:
-SOLVED: 1) Missing last value, blocking on channel but never receiving
-NOTE: pushing data is being called 30 times as it should be, but City: is printing only 26 times,
-meaning the channel is blocking and there is some contention in the queue.
-
-2025/04/12 12:51:01 response: <nil>
-2025/04/12 12:51:01 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
-2025/04/12 12:51:01 Error fetching weather data for Tokyo: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Tokyo&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-2025/04/12 12:51:01 Weather fetch failed for city: Tokyo
-
-
-2025/04/12 12:51:01 [Recovery] 2025/04/12 - 12:51:01 panic recovered:
-GET /weather/stress3 HTTP/2.0
-Host: localhost:8080
-User-Agent: curl/8.5.0
-
-
-runtime error: index out of range [0] with length 0
-/usr/lib/go-1.22/src/runtime/panic.go:114 (0x43809b)
-        goPanicIndex: panic(boundsError{x: int64(x), signed: true, y: y, code: boundsIndex})
-/mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:631 (0x7ac8f7)
-        getWeatherStressTest3: "description": data.Weather[0].Description,
-/home/neobsv/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185 (0x7a1199)
-        (*Context).Next: c.handlers[c.index](c)
-
-
-POSSIBLE SOLUTION: Buffer Overflow, increase channel length to at least 2... done but it still fails
-SOLUTION: push one extra dummy value to the channel to pad the buffer and close it
-
-
-
-SOLVED: 2) Panic send on closed channel
-
-2025/04/12 12:48:03 response: &{200 OK 200 HTTP/1.1 1 1 map[Access-Control-Allow-Credentials:[true] Access-Control-Allow-Methods:[GET, POST] Access-Control-Allow-Origin:[*] Connection:[keep-alive] Content-Length:[599] Content-Type:[application/json; charset=utf-8] Date:[Sat, 12 Apr 2025 09:48:04 GMT] Server:[openresty] X-Cache-Key:[/data/2.5/weather?q=new%20york]] 0xc000798200 599 [] false false map[] 0xc00052c120 0xc0000e02c0}
-2025/04/12 12:48:03 pushing data:  {{-74.006 40.7143} {2 2037026 0 US 1744453279 1744500702} stations [{500 Rain light rain 10n} {701 Mist mist 50n}] {275.82 274.58 276.6 270.13 1014 1014 1012 92} 6437 {8.49 57} {100} {0.73 0} {0 0} 1744450684 5128581 New York 200 -14400}
-2025/04/12 12:48:03 response: <nil>
-2025/04/12 12:48:03 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
-2025/04/12 12:48:03 City:  New York  Country:  US  Temperature:  275.82  Description:  light rain
-2025/04/12 12:48:03 pushing data:  {{77.6033 12.9762} {2 2017753 0 IN 1744418320 1744462901} stations [{802 Clouds scattered clouds 03d}] {304.66 303.35 306.13 304.9 1006 1006 910 41} 8000 {1.54 250} {40} {0 0} {0 0} 1744450842 1277333 Bengaluru 200 19800}
-2025/04/12 12:48:03 Error fetching weather data for Bengaluru: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Bengaluru&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-2025/04/12 12:48:03 Weather fetch failed for city: Bengaluru
-panic: send on closed channel
-
-goroutine 88 [running]:
-github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding.func1()
-        /mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:537 +0x68
-created by github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding in goroutine 21
-        /mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:535 +0x2b
-
-
-SOLUTION: Increase timeout to 5 seconds, API side error, channel buffer increased
-
-
-
-3) Fetch failed and then it tries to decode the data
-
-2025/04/12 12:51:01 response: <nil>
-2025/04/12 12:51:01 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
-2025/04/12 12:51:01 Error fetching weather data for Tokyo: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Tokyo&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
-2025/04/12 12:51:01 Weather fetch failed for city: Tokyo
-
-
-2025/04/12 12:51:01 [Recovery] 2025/04/12 - 12:51:01 panic recovered:
-GET /weather/stress3 HTTP/2.0
-Host: localhost:8080
-User-Agent: curl/8.5.0
-
-
-runtime error: index out of range [0] with length 0
-/usr/lib/go-1.22/src/runtime/panic.go:114 (0x43809b)
-        goPanicIndex: panic(boundsError{x: int64(x), signed: true, y: y, code: boundsIndex})
-/mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:631 (0x7ac8f7)
-        getWeatherStressTest3: "description": data.Weather[0].Description,
-/home/neobsv/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185 (0x7a1199)
-        (*Context).Next: c.handlers[c.index](c)
-
-
-*/
+// TESTED: ERRORS FIXED
 
 package weather
 
@@ -435,6 +355,8 @@ func stressTestHelper2(location string, sq *SharedQueue) error {
 
 }
 
+// Barrier till buffer is full, and then drain.
+// Excellent work, works at scale!
 func getWeatherStressTest2(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
@@ -501,6 +423,8 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 }
 
+// Barrier till first element present, keep draining the queue while producer is pushing data.
+// NOT CONFIDENT: Does not work at scale, needs more testing.
 func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
@@ -520,7 +444,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 		}(city)
 	}
 
-	channel := make(chan WeatherData, 1)
+	channel := make(chan WeatherData, 2)
 	defer close(channel)
 
 	sq.GetAllYielding(len(cities), channel)
@@ -581,3 +505,85 @@ func getHandleDefaultRoute(ctx *gin.Context) {
 		"message": "the weather is quite sad.",
 	})
 }
+
+/*
+ERRORS FOR ADVANCED YIELDING MAP REDUCE:
+
+This is the main thing:
+1) Missing last value, blocking on channel but never receiving
+NOTE: pushing data is being called 30 times as it should be, but City: is printing only 26 times,
+meaning the channel is blocking and there is some contention in the queue.
+
+2025/04/12 12:51:01 response: <nil>
+2025/04/12 12:51:01 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
+2025/04/12 12:51:01 Error fetching weather data for Tokyo: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Tokyo&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025/04/12 12:51:01 Weather fetch failed for city: Tokyo
+
+
+2025/04/12 12:51:01 [Recovery] 2025/04/12 - 12:51:01 panic recovered:
+GET /weather/stress3 HTTP/2.0
+Host: localhost:8080
+User-Agent: curl/8.5.0
+
+
+runtime error: index out of range [0] with length 0
+/usr/lib/go-1.22/src/runtime/panic.go:114 (0x43809b)
+        goPanicIndex: panic(boundsError{x: int64(x), signed: true, y: y, code: boundsIndex})
+/mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:631 (0x7ac8f7)
+        getWeatherStressTest3: "description": data.Weather[0].Description,
+/home/neobsv/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185 (0x7a1199)
+        (*Context).Next: c.handlers[c.index](c)
+
+
+POSSIBLE SOLUTION: Buffer Overflow, increase channel length to at least 2... done but it still fails
+SOLUTION: push one extra dummy value to the channel to pad the buffer and close it
+
+
+
+SOLVED: 2) Panic send on closed channel
+
+2025/04/12 12:48:03 response: &{200 OK 200 HTTP/1.1 1 1 map[Access-Control-Allow-Credentials:[true] Access-Control-Allow-Methods:[GET, POST] Access-Control-Allow-Origin:[*] Connection:[keep-alive] Content-Length:[599] Content-Type:[application/json; charset=utf-8] Date:[Sat, 12 Apr 2025 09:48:04 GMT] Server:[openresty] X-Cache-Key:[/data/2.5/weather?q=new%20york]] 0xc000798200 599 [] false false map[] 0xc00052c120 0xc0000e02c0}
+2025/04/12 12:48:03 pushing data:  {{-74.006 40.7143} {2 2037026 0 US 1744453279 1744500702} stations [{500 Rain light rain 10n} {701 Mist mist 50n}] {275.82 274.58 276.6 270.13 1014 1014 1012 92} 6437 {8.49 57} {100} {0.73 0} {0 0} 1744450684 5128581 New York 200 -14400}
+2025/04/12 12:48:03 response: <nil>
+2025/04/12 12:48:03 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
+2025/04/12 12:48:03 City:  New York  Country:  US  Temperature:  275.82  Description:  light rain
+2025/04/12 12:48:03 pushing data:  {{77.6033 12.9762} {2 2017753 0 IN 1744418320 1744462901} stations [{802 Clouds scattered clouds 03d}] {304.66 303.35 306.13 304.9 1006 1006 910 41} 8000 {1.54 250} {40} {0 0} {0 0} 1744450842 1277333 Bengaluru 200 19800}
+2025/04/12 12:48:03 Error fetching weather data for Bengaluru: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Bengaluru&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025/04/12 12:48:03 Weather fetch failed for city: Bengaluru
+panic: send on closed channel
+
+goroutine 88 [running]:
+github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding.func1()
+        /mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:537 +0x68
+created by github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding in goroutine 21
+        /mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:535 +0x2b
+
+
+SOLUTION: Increase timeout to 5 seconds, API side error, channel buffer increased
+
+
+
+3) Fetch failed and then it tries to decode the data
+
+2025/04/12 12:51:01 response: <nil>
+2025/04/12 12:51:01 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
+2025/04/12 12:51:01 Error fetching weather data for Tokyo: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Tokyo&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025/04/12 12:51:01 Weather fetch failed for city: Tokyo
+
+
+2025/04/12 12:51:01 [Recovery] 2025/04/12 - 12:51:01 panic recovered:
+GET /weather/stress3 HTTP/2.0
+Host: localhost:8080
+User-Agent: curl/8.5.0
+
+
+runtime error: index out of range [0] with length 0
+/usr/lib/go-1.22/src/runtime/panic.go:114 (0x43809b)
+        goPanicIndex: panic(boundsError{x: int64(x), signed: true, y: y, code: boundsIndex})
+/mnt/c/Users/munis/Desktop/github_stuff/weather/server/handler.go:631 (0x7ac8f7)
+        getWeatherStressTest3: "description": data.Weather[0].Description,
+/home/neobsv/go/pkg/mod/github.com/gin-gonic/gin@v1.10.0/context.go:185 (0x7a1199)
+        (*Context).Next: c.handlers[c.index](c)
+
+
+*/
