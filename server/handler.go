@@ -415,13 +415,13 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 	if err != nil {
 		log.Println("pushing data with err: ", weatherData)
-		sq.SlowPush(weatherData)
+		sq.FastPush(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	}
 
 	log.Println("pushing data: ", weatherData)
-	sq.SlowPush(weatherData)
+	sq.FastPush(weatherData)
 
 	return nil
 

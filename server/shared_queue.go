@@ -37,12 +37,12 @@ func (q *SharedQueue) TryPush(data WeatherData) bool {
 
 }
 
-func (q *SharedQueue) SlowPush(data WeatherData) {
+func (q *SharedQueue) FastPush(data WeatherData) {
 
 	// Ease the contention, don't push if the queue has data already
 
 	for !q.TryPush(data) {
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(1 * time.Nanosecond)
 	}
 
 }
