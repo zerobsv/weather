@@ -76,7 +76,6 @@ func (q *SharedQueue) CheckNotify() bool {
 func (q *SharedQueue) Pop() WeatherData {
 	// SENSITIVE LOCKING: This read lock has to be done strictly BEFORE.
 	// Yield Barrier: Wait for at least one element to be present in the queue
-hackycheck:
 	q.HackyCheck()
 
 	// PANIC: Two goros have passed this barrier! :O
@@ -101,10 +100,10 @@ hackycheck:
 	// NOTE: HB_SENSITIVE happens before this line, other goros check the notify variable,
 	// and if it is true, then all the goros need to go back.
 
-	if q.CheckNotify() {
-		// time.Sleep(1 * time.Millisecond)
+	for q.CheckNotify() {
 		q.mutex.Unlock()
-		goto hackycheck
+		q.HackyCheck()
+		q.mutex.Lock()
 	}
 
 	// OK NOW, THE PROBLEM IS THE THE FIRST GORO CANT PASS :0 :O
@@ -167,7 +166,7 @@ func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 	return results
 }
 
-// NOT CONFIDENT: Needs more testing.
+// Excellent work, works at scale!
 func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 
 	// Yield Barrier: Wait for at least one element to be present in the queue

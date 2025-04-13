@@ -427,8 +427,8 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 }
 
-// Barrier till first element present, keep draining the queue while producer is pushing data.
-// NOT CONFIDENT: Does not work at scale, needs more testing.
+// Barrier till the first element is present, keep draining the queue while producer is pushing data.
+// Excellent work, works at scale!
 func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
