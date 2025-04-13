@@ -433,7 +433,16 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	// cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Sydney", "Berlin", "Moscow", "Cairo", "Rio%20de%20Janeiro", "Miami", "Sao%20Paulo", "Madrid", "Barcelona", "Lisbon", "Vienna", "Buenos%20Aires", "Bangkok", "Singapore", "San%20Francisco", "Shanghai", "Mumbai", "Hong%20Kong"}
 
-	cities := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
+	temp := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
+
+	repetitions := 10
+	result := make([]string, len(temp)*repetitions)
+
+	for i := 0; i < repetitions; i++ {
+		result = append(result, temp...)
+	}
+
+	cities := result
 
 	// cities := []string{"Lisbon", "Vienna", "Tokyo", "London", "Paris"}
 
@@ -513,7 +522,6 @@ func getHandleDefaultRoute(ctx *gin.Context) {
 /*
 ERRORS FOR ADVANCED YIELDING MAP REDUCE:
 
-This is the main thing:
 
 1) 2025/04/13 13:45:10 City:    Country:    Temperature:  0
 2025/04/13 13:45:10 $$$$$$$$$$$$ ITER 29 $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: []
@@ -533,6 +541,8 @@ created by github.com/neobsv/weather/server.(*SharedQueue).GetAllYielding in gor
         /mnt/c/Users/munis/Desktop/github_stuff/weather/server/shared_queue.go:165 +0x3c
 
 
+
+This was the main issue:
 SOLVED: 1) Missing last value, blocking on channel but never receiving
 NOTE: pushing data is being called 30 times as it should be, but City: is printing only 26 times,
 meaning the channel is blocking and there is some contention in the queue.
