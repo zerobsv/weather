@@ -1,6 +1,7 @@
 package weather
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -173,6 +174,13 @@ func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 
 	// Yield Barrier: Wait for at least one element to be present in the queue
 	for count > 0 {
+		// Handle panic for each consumer
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Consumer goroutine panicked:", err)
+			}
+		}()
+
 		go func() {
 			// Collect the result and pop
 			ch <- q.Pop()
