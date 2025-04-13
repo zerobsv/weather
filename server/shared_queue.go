@@ -37,7 +37,7 @@ func (q *SharedQueue) TryPush(data WeatherData) bool {
 
 }
 
-func (q *SharedQueue) Push(data WeatherData) {
+func (q *SharedQueue) SlowPush(data WeatherData) {
 
 	// Ease the contention, don't push if the queue has data already
 
@@ -45,6 +45,13 @@ func (q *SharedQueue) Push(data WeatherData) {
 		time.Sleep(1 * time.Millisecond)
 	}
 
+}
+
+func (q *SharedQueue) Push(data WeatherData) {
+	q.mutex.Lock()
+	q.data = append(q.data, data)
+	q.Notify()
+	q.mutex.Unlock()
 }
 
 func (q *SharedQueue) HackyCheck() {

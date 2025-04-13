@@ -367,7 +367,7 @@ func getWeatherStressTest2(ctx *gin.Context) {
 
 	temp := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	repetitions := 10
+	repetitions := 1
 	result := make([]string, len(temp)*repetitions)
 
 	for i := 0; i < repetitions; i++ {
@@ -415,13 +415,13 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 
 	if err != nil {
 		log.Println("pushing data with err: ", weatherData)
-		sq.Push(weatherData)
+		sq.SlowPush(weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
 	}
 
 	log.Println("pushing data: ", weatherData)
-	sq.Push(weatherData)
+	sq.SlowPush(weatherData)
 
 	return nil
 
@@ -435,7 +435,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	temp := []string{"Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris", "Bengaluru", "New%20York", "Tokyo", "London", "Paris"}
 
-	repetitions := 10
+	repetitions := 1
 	result := make([]string, len(temp)*repetitions)
 
 	for i := 0; i < repetitions; i++ {
