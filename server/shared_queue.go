@@ -107,7 +107,6 @@ func (q *SharedQueue) Pop() WeatherData {
 	}
 
 	// OK NOW, THE PROBLEM IS THE THE FIRST GORO CANT PASS :0 :O
-	// have to leevay checknotify, to let the first one in
 
 	// AHA: Problem is, there is contention on mutex, and Push is not happening at all, before Pop.
 	// FIX: Mutex unlock after checking notify.
@@ -124,6 +123,9 @@ func (q *SharedQueue) Pop() WeatherData {
 	// No, this is not a solution.
 	// FIX: Added TryPush to send a notify to the consumer without pushing data to the queue.
 	// Eases the consumer, and lets it consume without deadlocking.
+
+	// PROBLEM: I was too nice and playful and childlike
+	// FIX: Become the machine.
 
 	tmp := q.data[0]
 	q.data = q.data[1:]
