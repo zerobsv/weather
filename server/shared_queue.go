@@ -9,7 +9,7 @@ type SharedQueue struct {
 	mutex sync.RWMutex
 	data  []WeatherData
 
-	// Mutex to facilitate HackyCheck
+	// Mutex to facilitate Check
 	NotifyMutex sync.RWMutex
 	notify      bool
 }

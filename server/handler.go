@@ -158,7 +158,7 @@ func getWeatherInternational(ctx *gin.Context) {
 		"city":        weatherData.Name,
 		"country":     weatherData.Sys.Country,
 		"temperature": fmt.Sprint(weatherData.Main.Temp),
-		"description": weatherData.Weather[0].Description,
+		// "description": weatherData.Weather[0].Description,
 	})
 
 }
@@ -195,7 +195,7 @@ func getWeatherLocal(ctx *gin.Context) {
 		"city":        weatherData.Name,
 		"country":     weatherData.Sys.Country,
 		"temperature": fmt.Sprint(weatherData.Main.Temp),
-		"description": weatherData.Weather[0].Description,
+		// "description": weatherData.Weather[0].Description,
 	})
 
 }
@@ -267,10 +267,10 @@ func getWeatherStressTest0(ctx *gin.Context) {
 			"city":        data.Name,
 			"country":     data.Sys.Country,
 			"temperature": fmt.Sprint(data.Main.Temp),
-			"description": data.Weather[0].Description,
+			// "description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
@@ -283,13 +283,14 @@ func stressTestHelper1(location string, c chan WeatherData) error {
 
 	if err != nil {
 		c <- weatherData
-		log.Println("pushing data: ", weatherData)
+		log.Println("pushing data with err: ", weatherData)
 		log.Printf("Error fetching weather data for %s: %v", location, err)
 		return err
-	} else {
-		c <- weatherData
-		return nil
 	}
+
+	log.Println("pushing data: ", weatherData)
+	c <- weatherData
+	return nil
 
 }
 
@@ -305,6 +306,7 @@ func getWeatherStressTest1(ctx *gin.Context) {
 	// }
 
 	channel := make(chan WeatherData, len(cities))
+	defer close(channel)
 
 	for _, city := range cities {
 		go func(city string) {
@@ -314,8 +316,6 @@ func getWeatherStressTest1(ctx *gin.Context) {
 			}
 		}(city)
 	}
-
-	defer close(channel)
 
 	var stressResponse []gin.H
 
@@ -331,10 +331,10 @@ func getWeatherStressTest1(ctx *gin.Context) {
 			"city":        data.Name,
 			"country":     data.Sys.Country,
 			"temperature": fmt.Sprint(data.Main.Temp),
-			"description": data.Weather[0].Description,
+			// "description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
