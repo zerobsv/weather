@@ -98,7 +98,7 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 		return WeatherData{}, fmt.Errorf("could not parse api key %v", err)
 	}
 
-	client := http.Client{Timeout: time.Duration(5) * time.Second}
+	client := http.Client{Timeout: time.Duration(1) * time.Second}
 
 	requestUrl := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
@@ -109,6 +109,9 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 	log.Printf("response: %v", resp)
 
 	if err != nil {
+		if os.IsTimeout(err) {
+			return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
+		}
 		return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
 	}
 
