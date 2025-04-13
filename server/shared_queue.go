@@ -115,6 +115,9 @@ hackycheck:
 	// other goroutines are spinning between goto and the label and aggresively using check notify.
 
 	// Should we add a time delay to spin between hackycheck and check notify?
+	// No, this is not a solution.
+	// FIX: Added TryPush to send a notify to the consumer without pushing data to the queue.
+	// Eases the consumer, and lets it consume without deadlocking.
 
 	tmp := q.data[0]
 	q.data = q.data[1:]
