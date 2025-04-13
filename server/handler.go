@@ -98,7 +98,7 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 		return WeatherData{}, fmt.Errorf("could not parse api key %v", err)
 	}
 
-	client := http.Client{Timeout: time.Duration(1) * time.Second}
+	client := http.Client{Timeout: time.Duration(200) * time.Millisecond}
 
 	requestUrl := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
@@ -525,6 +525,18 @@ func getHandleDefaultRoute(ctx *gin.Context) {
 /*
 ERRORS FOR ADVANCED YIELDING MAP REDUCE:
 
+CI Failed: Client Timeout issues causing consumer to suspend execution.....
+2025/04/13 15:52:26 Error fetching weather data for : failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025/04/13 15:52:26 Weather fetch failed for city:
+2025/04/13 15:52:26 Error fetching weather data for New%20York: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=New%20York&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025/04/13 15:52:26 Weather fetch failed for city: New%20York
+2025/04/13 15:52:26 Error fetching weather data for Tokyo: failed to fetch weather data: Get "https://api.openweathermap.org/data/2.5/weather?q=Tokyo&appid=7c8c4670fac07e8aa7c50d45c295bf3a": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025/04/13 15:52:26 Weather fetch failed for city: Tokyo
+2025/04/13 15:52:26 $$$$$$$$$$$$ ITER 7 $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: [{{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0} {{0 0} {0 0 0  0 0}  [] {0 0 0
+
+Solution: Decouple the requesting goroutine from the consumer
+
+
 
 SOLVED: 1) 2025/04/13 13:45:10 City:    Country:    Temperature:  0
 2025/04/13 13:45:10 $$$$$$$$$$$$ ITER 29 $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: []
@@ -549,7 +561,7 @@ SOLUTION: We get serious, removed hackycheck and goto, made it formal and less p
 
 
 This was the main issue:
-SOLVED: 1) Missing last value, blocking on channel but never receiving
+SOLVED: 2) Missing last value, blocking on channel but never receiving
 NOTE: pushing data is being called 30 times as it should be, but City: is printing only 26 times,
 meaning the channel is blocking and there is some contention in the queue.
 
@@ -580,7 +592,7 @@ POSSIBLESOLUTION: push one extra dummy value to the channel to pad the buffer an
 SOLUTION: Introduce TryPush, spin and wait till the consumer has read the data.
 
 
-SOLVED: 2) Panic send on closed channel
+SOLVED: 3) Panic send on closed channel
 
 2025/04/12 12:48:03 response: &{200 OK 200 HTTP/1.1 1 1 map[Access-Control-Allow-Credentials:[true] Access-Control-Allow-Methods:[GET, POST] Access-Control-Allow-Origin:[*] Connection:[keep-alive] Content-Length:[599] Content-Type:[application/json; charset=utf-8] Date:[Sat, 12 Apr 2025 09:48:04 GMT] Server:[openresty] X-Cache-Key:[/data/2.5/weather?q=new%20york]] 0xc000798200 599 [] false false map[] 0xc00052c120 0xc0000e02c0}
 2025/04/12 12:48:03 pushing data:  {{-74.006 40.7143} {2 2037026 0 US 1744453279 1744500702} stations [{500 Rain light rain 10n} {701 Mist mist 50n}] {275.82 274.58 276.6 270.13 1014 1014 1012 92} 6437 {8.49 57} {100} {0.73 0} {0 0} 1744450684 5128581 New York 200 -14400}
@@ -603,7 +615,7 @@ SOLUTION: Increase timeout to 5 seconds, API side error, channel buffer increase
 
 
 
-SOLVED: 3) Fetch failed and then it tries to decode the data
+SOLVED: 4) Fetch failed and then it tries to decode the data
 
 2025/04/12 12:51:01 response: <nil>
 2025/04/12 12:51:01 pushing data:  {{0 0} {0 0 0  0 0}  [] {0 0 0 0 0 0 0 0} 0 {0 0} {0} {0 0} {0 0} 0 0  0 0}
