@@ -42,7 +42,7 @@ func (q *SharedQueue) FastPush(data WeatherData) {
 	// Ease the contention, don't push if the queue has data already
 
 	for !q.TryPush(data) {
-		time.Sleep(1 * time.Nanosecond)
+		time.Sleep(1 * time.Millisecond)
 	}
 
 }
@@ -56,7 +56,7 @@ func (q *SharedQueue) Push(data WeatherData) {
 
 func (q *SharedQueue) Check() {
 	for q.GetLength() < 1 {
-		time.Sleep(1 * time.Nanosecond)
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 

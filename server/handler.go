@@ -463,6 +463,13 @@ func getWeatherStressTest3(ctx *gin.Context) {
 	channel := make(chan WeatherData, 1)
 	defer close(channel)
 
+	// Handle panic for consumer goroutine
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("Consumer goroutine panicked:", err)
+		}
+	}()
+
 	go sq.GetAllYielding(len(cities), channel)
 
 	var stressResponse []gin.H
