@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weather
+  template:
+    metadata:
+      labels:
+        app: weather
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"         # Change to your app's port
+        prometheus.io/path: "/metrics"     # Change if your app uses a custom path
+    spec:
+      containers:
+        - name: weather
+          image: weather:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+

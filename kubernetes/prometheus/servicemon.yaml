@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: weather-monitor
+  labels:
+    release: prometheus  # Must match your Prometheus release name
+spec:
+  selector:
+    matchLabels:
+      app: weather
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+
