@@ -1,7 +1,7 @@
 package main
 
 import (
-	server "github.com/neobsv/weather/server"
+	server "github.com/zerobsv/weather/server"
 )
 
 func main() {

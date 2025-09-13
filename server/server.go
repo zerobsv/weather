@@ -10,20 +10,69 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "endpoint", "status"},
+	)
+
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Histogram of response time for handler in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
+)
+
+func init() {
+	// Register Prometheus metrics
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
+}
+
+// func prometheusMiddleware() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		start := time.Now()
+
+// 		// Process request
+// 		c.Next()
+
+// 		// Collect metrics
+// 		duration := time.Since(start).Seconds()
+// 		status := c.Writer.Status()
+// 		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), http.StatusText(status)).Inc()
+// 		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
+// 	}
+// }
 
 func WeatherServer() {
 
 	router := gin.Default()
 
-	router.GET("/", getHandleDefaultRoute)
-	router.GET("/weather", getWeatherLocal)
-	router.GET("/weather/:location", getWeatherInternational)
+	// Add Prometheus middleware
+	// router.Use(prometheusMiddleware())
 
-	router.GET("/weather/stress0", getWeatherStressTest0)
-	router.GET("/weather/stress1", getWeatherStressTest1)
-	router.GET("/weather/stress2", getWeatherStressTest2)
-	router.GET("/weather/stress3", getWeatherStressTest3)
+	// Define routes
+	router.GET("/", getHandleDefaultRoute)
+	router.GET("/weather", instrumentedGetWeatherLocal)
+	router.GET("/weather/:location", instrumentedGetWeatherInternational)
+
+	router.GET("/weather/stress0", instrumentedGetWeatherStressTest0)
+	router.GET("/weather/stress1", instrumentedGetWeatherStressTest1)
+	router.GET("/weather/stress2", instrumentedGetWeatherStressTest2)
+	router.GET("/weather/stress3", instrumentedGetWeatherStressTest3)
+
+	// Add /metrics endpoint for Prometheus
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	log.Println("Starting gin gonic...")
 

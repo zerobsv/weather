@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TestGetWeatherLocalResponse tests the GetWeatherLocal function to ensure it handles the request correctly.
+// TestGetWeatherLocalResponse tests the instrumentedGetWeatherLocal function to ensure it handles the request correctly.
 //
 // The function uses httptest.NewRecorder to create a response recorder for testing HTTP responses.
 // GetWeatherLocal is tested for response code only
@@ -27,12 +27,12 @@ func TestGetWeatherLocalResponse(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	getWeatherLocal(ctx)
+	instrumentedGetWeatherLocal(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// TestGetWeatherLocalResponseLocation tests the getWeatherLocal function with a location query parameter.
+// TestGetWeatherLocalResponseLocation tests the instrumentedGetWeatherLocal function with a location query parameter.
 // It verifies the function's response code, JSON response, and specific fields in the response.
 //
 // Parameters:
@@ -49,7 +49,7 @@ func TestGetWeatherLocalResponseLocation(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherLocal(ctx)
+	instrumentedGetWeatherLocal(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
@@ -81,7 +81,7 @@ func TestWeatherInternationalResponse(t *testing.T) {
 
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather/Tokyo", nil)
 
-	getWeatherInternational(ctx)
+	instrumentedGetWeatherInternational(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
@@ -106,7 +106,7 @@ func TestWeatherStressResponse0(t *testing.T) {
 
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherStressTest0(ctx)
+	instrumentedGetWeatherStressTest0(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
@@ -130,7 +130,7 @@ func TestWeatherStressResponse1(t *testing.T) {
 
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherStressTest1(ctx)
+	instrumentedGetWeatherStressTest1(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
@@ -154,7 +154,7 @@ func TestWeatherStressResponse2(t *testing.T) {
 
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherStressTest2(ctx)
+	instrumentedGetWeatherStressTest2(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
@@ -178,7 +178,7 @@ func TestWeatherStressResponse3(t *testing.T) {
 
 	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather", nil)
 
-	getWeatherStressTest3(ctx)
+	instrumentedGetWeatherStressTest3(ctx)
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
