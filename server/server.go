@@ -86,7 +86,7 @@ func WeatherServer() {
 
 	go func() {
 		// service connections
-		if err := srv.ListenAndServeTLS("server.pem", "server.key"); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %v\n", err)
 		}
 	}()

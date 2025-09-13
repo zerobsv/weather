@@ -126,7 +126,7 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 
 	client := http.Client{Timeout: time.Duration(200) * time.Millisecond}
 
-	requestUrl := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
+	requestUrl := fmt.Sprintf("http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
 	log.Printf("Making a GET request to %s", requestUrl)
 

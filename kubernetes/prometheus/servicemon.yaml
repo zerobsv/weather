@@ -3,13 +3,16 @@ kind: ServiceMonitor
 metadata:
   name: weather-monitor
   labels:
-    release: prometheus  # Must match your Prometheus release name
+    release: prometheus-operator  # Must match your Prometheus release name
 spec:
+  namespaceSelector:
+    matchNames:
+      - default 
   selector:
     matchLabels:
       app: weather
   endpoints:
     - port: http
       path: /metrics
-      interval: 15s
+      interval: 2s
 
