@@ -39,27 +39,27 @@ func init() {
 	prometheus.MustRegister(httpRequestDuration)
 }
 
-// func prometheusMiddleware() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		start := time.Now()
+func prometheusMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
 
-// 		// Process request
-// 		c.Next()
+		// Process request
+		c.Next()
 
-// 		// Collect metrics
-// 		duration := time.Since(start).Seconds()
-// 		status := c.Writer.Status()
-// 		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), http.StatusText(status)).Inc()
-// 		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
-// 	}
-// }
+		// Collect metrics
+		duration := time.Since(start).Seconds()
+		status := c.Writer.Status()
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), http.StatusText(status)).Inc()
+		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
+	}
+}
 
 func WeatherServer() {
 
 	router := gin.Default()
 
 	// Add Prometheus middleware
-	// router.Use(prometheusMiddleware())
+	router.Use(prometheusMiddleware())
 
 	// Define routes
 	router.GET("/", getHandleDefaultRoute)
