@@ -1,0 +1,32 @@
+replicaCount: 2
+
+image:
+  repository: myrepo/weather
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  name: weather
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  port: http
+
+labels:
+  app: weather
+  release: stable
+
