@@ -17,8 +17,13 @@ $ helm repo update
 
 $ helm upgrade --install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace --set grafana.service.port=3001
 
-4. Port forward required services from the cluster
+4. Install the weather helm chart
 
-$ kubectl port-forward svc/weather 8080:8080
+$ helm install weather .
+
+
+5. Port forward required services from the cluster
+
+$ kubectl port-forward svc/weather-weather 8080:80
 $ kubectl port-forward -n monitoring service/prometheus-operator-kube-p-prometheus 9090:9090
 $ kubectl port-forward -n monitoring service/prometheus-operator-grafana -n monitoring 3001:3001

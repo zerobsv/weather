@@ -1,7 +1,7 @@
 replicaCount: 2
 
 image:
-  repository: myrepo/weather
+  repository: weather
   tag: latest
   pullPolicy: IfNotPresent
 
