@@ -21,6 +21,14 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
+              name: http
+          {{- if .Values.openTelemetry.enabled }}
+          env:
+            {{- range $key, $value := .Values.openTelemetry.env }}
+            - name: {{ $key }}
+              value: "{{ $value }}"
+            {{- end }}
+          {{- end }}
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
@@ -28,4 +36,22 @@ spec:
             limits:
               cpu: {{ .Values.resources.limits.cpu }}
               memory: {{ .Values.resources.limits.memory }}
+        {{- if .Values.openTelemetry.collectorSidecar.enabled }}
+        - name: otel-collector
+          image: {{ .Values.openTelemetry.collectorSidecar.image }}
+          ports:
+            - containerPort: 4317
+              name: otlp-grpc
+            - containerPort: 4318
+              name: otlp-http
+            - containerPort: 14250
+              name: jaeger-grpc
+          resources:
+            requests:
+              cpu: {{ .Values.openTelemetry.collectorSidecar.resources.requests.cpu }}
+              memory: {{ .Values.openTelemetry.collectorSidecar.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.openTelemetry.collectorSidecar.resources.limits.cpu }}
+              memory: {{ .Values.openTelemetry.collectorSidecar.resources.limits.memory }}
+        {{- end }}
 

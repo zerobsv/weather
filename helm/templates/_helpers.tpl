@@ -1,4 +1,4 @@
 {{- define "weather.fullname" -}}
-{{ printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" }}
+{{ printf "%s-service" .Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 

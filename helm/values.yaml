@@ -19,12 +19,30 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-serviceMonitor:
+# OpenTelemetry Configuration
+openTelemetry:
   enabled: true
-  interval: 30s
-  scrapeTimeout: 10s
-  path: /metrics
-  port: http
+  # Set to true to use OpenTelemetry Collector sidecar
+  collectorSidecar:
+    enabled: false
+    image: otel/opentelemetry-collector-k8s:latest
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+  # OpenTelemetry environment variables
+  env:
+    # Exporter configuration
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://opentelemetry-collector:4317"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+    OTEL_TRACES_EXPORTER: "otlp"
+    OTEL_METRICS_EXPORTER: "otlp"
+    # Service configuration
+    OTEL_SERVICE_NAME: "weather-service"
+    OTEL_SDK_DISABLED: "false"
 
 labels:
   app: weather

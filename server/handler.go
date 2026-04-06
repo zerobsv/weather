@@ -548,51 +548,51 @@ func instrumentedGetWeatherInternational(ctx *gin.Context) {
 func instrumentedGetWeatherLocal(ctx *gin.Context) {
 	start := time.Now()
 	weatherRequestCounter.Add(context.Background(), 1,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherLocal")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherLocal")))
 	getWeatherLocal(ctx)
 	duration := time.Since(start).Seconds()
 	weatherRequestDuration.Record(context.Background(), duration,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherLocal")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherLocal")))
 }
 
 func instrumentedGetWeatherStressTest0(ctx *gin.Context) {
 	start := time.Now()
 	weatherRequestCounter.Add(context.Background(), 1,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest0")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest0")))
 	getWeatherStressTest0(ctx)
 	duration := time.Since(start).Seconds()
 	weatherRequestDuration.Record(context.Background(), duration,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest0")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest0")))
 }
 
 func instrumentedGetWeatherStressTest1(ctx *gin.Context) {
 	start := time.Now()
 	weatherRequestCounter.Add(context.Background(), 1,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest1")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest1")))
 	getWeatherStressTest1(ctx)
 	duration := time.Since(start).Seconds()
 	weatherRequestDuration.Record(context.Background(), duration,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest1")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest1")))
 }
 
 func instrumentedGetWeatherStressTest2(ctx *gin.Context) {
 	start := time.Now()
 	weatherRequestCounter.Add(context.Background(), 1,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest2")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest2")))
 	getWeatherStressTest2(ctx)
 	duration := time.Since(start).Seconds()
 	weatherRequestDuration.Record(context.Background(), duration,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest2")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest2")))
 }
 
 func instrumentedGetWeatherStressTest3(ctx *gin.Context) {
 	start := time.Now()
 	weatherRequestCounter.Add(context.Background(), 1,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest3")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest3")))
 	getWeatherStressTest3(ctx)
 	duration := time.Since(start).Seconds()
 	weatherRequestDuration.Record(context.Background(), duration,
-		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest3")))
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest3")))
 }
 
 // ParseApiKey reads the API key from a file and returns it.
