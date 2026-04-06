@@ -39,6 +39,8 @@ spec:
         {{- if .Values.openTelemetry.collectorSidecar.enabled }}
         - name: otel-collector
           image: {{ .Values.openTelemetry.collectorSidecar.image }}
+          args:
+            - "--config=/etc/otel-collector-config.yaml"
           ports:
             - containerPort: 4317
               name: otlp-grpc
@@ -46,6 +48,10 @@ spec:
               name: otlp-http
             - containerPort: 14250
               name: jaeger-grpc
+          volumeMounts:
+            - name: otel-collector-config
+              mountPath: /etc/otel-collector-config.yaml
+              subPath: otel-collector-config.yaml
           resources:
             requests:
               cpu: {{ .Values.openTelemetry.collectorSidecar.resources.requests.cpu }}
@@ -54,4 +60,10 @@ spec:
               cpu: {{ .Values.openTelemetry.collectorSidecar.resources.limits.cpu }}
               memory: {{ .Values.openTelemetry.collectorSidecar.resources.limits.memory }}
         {{- end }}
+      {{- if .Values.openTelemetry.collectorSidecar.enabled }}
+      volumes:
+        - name: otel-collector-config
+          configMap:
+            name: {{ include "weather.fullname" . }}-otel-collector-config
+      {{- end }}
 
