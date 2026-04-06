@@ -3,6 +3,7 @@
 package weather
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,32 +14,32 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 var (
-	weatherRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "weather_request_duration_seconds",
-			Help:    "Histogram of response time for weather requests in seconds",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"endpoint"},
-	)
-
-	weatherRequestCounter = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "weather_requests_total",
-			Help: "Total number of weather requests",
-		},
-		[]string{"endpoint"},
-	)
+	weatherRequestDuration metric.Float64Histogram
+	weatherRequestCounter  metric.Float64Counter
 )
 
-func init() {
-	// Register Prometheus metrics
-	prometheus.MustRegister(weatherRequestDuration)
-	prometheus.MustRegister(weatherRequestCounter)
+func initMetrics(m metric.Meter) {
+	var err error
+	weatherRequestDuration, err = m.Float64Histogram(
+		"weather_request_duration_seconds",
+		metric.WithDescription("Histogram of response time for weather requests in seconds"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	weatherRequestCounter, err = m.Float64Counter(
+		"weather_requests_total",
+		metric.WithDescription("Total number of weather requests"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type Coordinates struct {
@@ -525,59 +526,73 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 func instrumentedSendWeatherRequest(location string) (WeatherData, error) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("sendWeatherRequest").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(attribute.Key("endpoint").String("sendWeatherRequest")))
 	data, err := sendWeatherRequest(location)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("sendWeatherRequest").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(attribute.Key("endpoint").String("sendWeatherRequest")))
 	return data, err
 }
 
 func instrumentedGetWeatherInternational(ctx *gin.Context) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("getWeatherInternational").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherInternational")))
 	getWeatherInternational(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("getWeatherInternational").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherInternational")))
 }
 
 func instrumentedGetWeatherLocal(ctx *gin.Context) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("getWeatherLocal").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherLocal")))
 	getWeatherLocal(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("getWeatherLocal").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherLocal")))
 }
 
 func instrumentedGetWeatherStressTest0(ctx *gin.Context) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("getWeatherStressTest0").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest0")))
 	getWeatherStressTest0(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("getWeatherStressTest0").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest0")))
 }
 
 func instrumentedGetWeatherStressTest1(ctx *gin.Context) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("getWeatherStressTest1").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest1")))
 	getWeatherStressTest1(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("getWeatherStressTest1").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest1")))
 }
 
 func instrumentedGetWeatherStressTest2(ctx *gin.Context) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("getWeatherStressTest2").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest2")))
 	getWeatherStressTest2(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("getWeatherStressTest2").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest2")))
 }
 
 func instrumentedGetWeatherStressTest3(ctx *gin.Context) {
 	start := time.Now()
-	weatherRequestCounter.WithLabelValues("getWeatherStressTest3").Inc()
+	weatherRequestCounter.Add(context.Background(), 1,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest3")))
 	getWeatherStressTest3(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.WithLabelValues("getWeatherStressTest3").Observe(duration)
+	weatherRequestDuration.Record(context.Background(), duration,
+		metric.WithAttributes(metric.NewKey("endpoint").String("getWeatherStressTest3")))
 }
 
 // ParseApiKey reads the API key from a file and returns it.
