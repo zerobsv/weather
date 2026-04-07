@@ -6,3 +6,4 @@ prometheus:
         scrape_interval: 5s
         static_configs:
           - targets: ['weather-service.default.svc.cluster.local:8889']
+        metrics_path: '/metrics'

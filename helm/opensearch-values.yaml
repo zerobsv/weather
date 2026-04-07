@@ -9,8 +9,11 @@ resources:
     cpu: "250m"      # Minimal CPU request
     memory: "1Gi"    # Lowered from default 8GiB/4GiB recommendations
   limits:
-    cpu: "500m"
-    memory: "1Gi"
+    cpu: "1"
+    memory: "2Gi"
+
+security:
+  enabled: false
 
 # 3. Adjust JVM Heap Size
 # Important: OTel logs can be heavy; heap should be ~50% of container memory
@@ -23,6 +26,6 @@ persistence:
 
 # 5. Required initial admin password for version 2.12+
 extraEnvs:
-  - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
-    value: "Pass123@#word"
+ - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+   value: "Pass123@#word"
 

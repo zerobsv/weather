@@ -71,7 +71,7 @@ $ kubectl apply -f jaeger-allinone.yaml -n observability
 
 $ kubectl get jaegers -n observability
 
-$ kubectl port-forward service/my-jaeger-query 16686:16686 -n observability
+$ kubectl port-forward service/jaeger-query 16686:16686 -n observability
 
 
 ### Install OpenSearch
@@ -79,6 +79,8 @@ $ kubectl port-forward service/my-jaeger-query 16686:16686 -n observability
 kubectl create ns logging
 
 helm install my-opensearch opensearch/opensearch -n logging -f opensearch-values.yaml
+
+helm install my-dashboards opensearch/opensearch-dashboards -n logging
 
 
 7. Install the weather helm chart

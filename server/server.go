@@ -131,11 +131,11 @@ func WeatherServer() {
 	metricsRouter := gin.New()
 	metricsRouter.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
 	metricsServer := &http.Server{
-		Addr:    ":8889",
+		Addr:    ":8082",
 		Handler: metricsRouter,
 	}
 
-	logger.Info("Starting metrics server on :8889")
+	logger.Info("Starting metrics server on :8082")
 
 	srv := &http.Server{
 		Addr:    ":8081",

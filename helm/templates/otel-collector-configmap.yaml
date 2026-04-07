@@ -29,10 +29,7 @@ data:
       opensearch:
         # REQUIRED: Main settings now live under 'http'
         http:
-          endpoint: "https://opensearch-cluster-master:9200"
-          # Format is "Basic <base64(user:password)>"
-          headers:
-            Authorization: "Basic YWRtaW46UGFzczEyM0Ajd29yZAo="
+          endpoint: "opensearch-cluster-master.logging.svc.cluster.local:9200"
         logs_index: "otel-logs"
 
       # Use 'debug' for basic logging (formerly 'logging' exporter)
@@ -55,4 +52,4 @@ data:
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [debug, opensearch] # Replaced 'fluentd' with 'debug' for standard visibility
+          exporters: [opensearch] # Replaced 'fluentd' with 'debug' for standard visibility
