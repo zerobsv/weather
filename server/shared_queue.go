@@ -175,7 +175,7 @@ func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 		// Handle panic for each consumer
 		defer func() {
 			if err := recover(); err != nil {
-				slogLogger.Error("Consumer goroutine panicked", "error", err)
+				logger.Error("Consumer goroutine panicked", "error", err)
 			}
 		}()
 

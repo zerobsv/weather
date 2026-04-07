@@ -15,7 +15,7 @@ $ helm repo update
 
 3. Install the operator on the cluster
 
-$ helm upgrade --install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace --set grafana.service.port=3001
+$ helm upgrade --install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace --set grafana.service.port=3001 -f prometheus-values.yaml
 
 
 ### Headlamp install

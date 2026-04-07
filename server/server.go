@@ -29,7 +29,7 @@ var (
 	httpRequestsTotal   metric.Float64Counter
 	httpRequestDuration metric.Float64Histogram
 	meter               metric.Meter
-	slogLogger          *slog.Logger
+	logger              *slog.Logger
 	traceProvider       *sdktrace.TracerProvider
 )
 
@@ -81,7 +81,7 @@ func WeatherServer() {
 	loggerProvider := sdklog.NewLoggerProvider()
 	global.SetLoggerProvider(loggerProvider)
 
-	slogLogger = otelslog.NewLogger("weather", otelslog.WithLoggerProvider(loggerProvider))
+	logger = otelslog.NewLogger("weather", otelslog.WithLoggerProvider(loggerProvider))
 
 	// Create instruments
 	httpRequestsTotal, err = meter.Float64Counter(
@@ -89,7 +89,7 @@ func WeatherServer() {
 		metric.WithDescription("Total number of HTTP requests"),
 	)
 	if err != nil {
-		slogLogger.Error("Failed to create http_requests_total counter", "error", err)
+		logger.Error("Failed to create http_requests_total counter", "error", err)
 		stdlog.Fatal(err)
 	}
 	httpRequestDuration, err = meter.Float64Histogram(
@@ -98,7 +98,7 @@ func WeatherServer() {
 		metric.WithUnit("s"),
 	)
 	if err != nil {
-		slogLogger.Error("Failed to create http_request_duration_seconds histogram", "error", err)
+		logger.Error("Failed to create http_request_duration_seconds histogram", "error", err)
 		stdlog.Fatal(err)
 	}
 
@@ -122,7 +122,7 @@ func WeatherServer() {
 	// Add /metrics endpoint for Prometheus
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
 
-	slogLogger.Info("Starting gin gonic on :8081")
+	logger.Info("Starting gin gonic on :8081")
 
 	srv := &http.Server{
 		Addr:    ":8081",
@@ -135,7 +135,7 @@ func WeatherServer() {
 	go func() {
 		// service connections
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slogLogger.Error("Failed to start server", "error", err)
+			logger.Error("Failed to start server", "error", err)
 			stdlog.Fatalf("listen: %v\n", err)
 		}
 	}()
@@ -146,22 +146,22 @@ func WeatherServer() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	slogLogger.Info("Shutdown Server ...")
+	logger.Info("Shutdown Server ...")
 
 	if err := srv.Shutdown(ctx); err != nil {
-		slogLogger.Error("Server Shutdown Failed", "error", err)
+		logger.Error("Server Shutdown Failed", "error", err)
 		stdlog.Fatal("Server Shutdown:", err)
 	}
 
 	// catching ctx.Done(). timeout of 5 seconds.
 	<-ctx.Done()
 
-	slogLogger.Info("timeout of 5 seconds.")
-	slogLogger.Info("Server exiting")
+	logger.Info("timeout of 5 seconds.")
+	logger.Info("Server exiting")
 
 	// Shutdown trace provider to flush remaining spans
 	if err := traceProvider.Shutdown(context.Background()); err != nil {
-		slogLogger.Error("Failed to shutdown trace provider", "error", err)
+		logger.Error("Failed to shutdown trace provider", "error", err)
 	}
 
 }

@@ -58,7 +58,7 @@ func TestGetWeatherLocalResponseLocation(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	slogLogger.Info("JSON response", "data", data)
+	logger.Info("JSON response", "data", data)
 
 	//assert.Equal(t, "Bengaluru", data["city"])
 	//assert.Equal(t, "IN", data["country"])
@@ -90,7 +90,7 @@ func TestWeatherInternationalResponse(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	slogLogger.Info("JSON response", "data", data)
+	logger.Info("JSON response", "data", data)
 
 	//assert.Equal(t, "Tokyo", data["city"])
 	//assert.Equal(t, "JP", data["country"])
@@ -109,7 +109,7 @@ func TestWeatherStressResponse0(t *testing.T) {
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
-	slogLogger.Info("Response body", "body", w.Body.String())
+	logger.Info("Response body", "body", w.Body.String())
 
 	var data []map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &data)
@@ -117,7 +117,7 @@ func TestWeatherStressResponse0(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	slogLogger.Info("JSON response", "data", data)
+	logger.Info("JSON response", "data", data)
 
 }
 
@@ -133,7 +133,7 @@ func TestWeatherStressResponse1(t *testing.T) {
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
-	slogLogger.Info("Response body", "body", w.Body.String())
+	logger.Info("Response body", "body", w.Body.String())
 
 	var data []map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &data)
@@ -141,7 +141,7 @@ func TestWeatherStressResponse1(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	slogLogger.Info("JSON response", "data", data)
+	logger.Info("JSON response", "data", data)
 
 }
 
@@ -157,7 +157,7 @@ func TestWeatherStressResponse2(t *testing.T) {
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
-	slogLogger.Info("Response body", "body", w.Body.String())
+	logger.Info("Response body", "body", w.Body.String())
 
 	var data []map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &data)
@@ -165,7 +165,7 @@ func TestWeatherStressResponse2(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	slogLogger.Info("JSON response", "data", data)
+	logger.Info("JSON response", "data", data)
 
 }
 
@@ -181,7 +181,7 @@ func TestWeatherStressResponse3(t *testing.T) {
 
 	//assert.Equal(t, http.StatusOK, w.Code)
 
-	slogLogger.Info("Response body", "body", w.Body.String())
+	logger.Info("Response body", "body", w.Body.String())
 
 	var data []map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &data)
@@ -189,7 +189,7 @@ func TestWeatherStressResponse3(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	slogLogger.Info("JSON response", "data", data)
+	logger.Info("JSON response", "data", data)
 
 }
 

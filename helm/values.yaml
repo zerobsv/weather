@@ -24,7 +24,7 @@ openTelemetry:
   enabled: true
   # Set to true to use OpenTelemetry Collector sidecar
   collectorSidecar:
-    enabled: false
+    enabled: true
     image: otel/opentelemetry-collector-k8s:latest
     resources:
       requests:
@@ -36,8 +36,8 @@ openTelemetry:
   # OpenTelemetry environment variables
   env:
     # Exporter configuration
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://opentelemetry-collector:4317"
-    OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://opentelemetry-collector:4318"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "http"
     OTEL_TRACES_EXPORTER: "otlp"
     OTEL_METRICS_EXPORTER: "otlp"
     # Service configuration
