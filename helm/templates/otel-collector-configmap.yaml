@@ -20,10 +20,7 @@ data:
           password: "Pass123#word"
 
     exporters:
-      # Requires 'otel/opentelemetry-collector-contrib' image
-      prometheus:
-        endpoint: "0.0.0.0:8889" # The port Prometheus will scrape from the collector
-      
+      # Requires 'otel/opentelemetry-collector-contrib' image      
       # Jaeger now recommends using OTLP directly
       otlp/jaeger:
         endpoint: "jaeger-collector.observability.svc.cluster.local:4317" # Standard OTLP port for modern Jaeger
@@ -57,10 +54,6 @@ data:
           receivers: [otlp]
           processors: [batch]
           exporters: [otlp/jaeger, opensearch]
-        metrics:
-          receivers: [otlp]
-          processors: [batch]
-          exporters: [prometheus]
         logs:
           receivers: [otlp]
           processors: [batch]
