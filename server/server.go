@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/log/global"
@@ -68,7 +69,7 @@ func WeatherServer() {
 	otel.SetMeterProvider(provider)
 	meter = provider.Meter("weather")
 
-	// Initialize trace exporter
+	// Initialize trace exporter for otel-collector sidecar
 	traceExporter, err := otlptracegrpc.New(context.Background())
 	if err != nil {
 		stdlog.Fatal("Failed to create trace exporter: ", err)
@@ -78,7 +79,12 @@ func WeatherServer() {
 	)
 	otel.SetTracerProvider(traceProvider)
 
-	loggerProvider := sdklog.NewLoggerProvider()
+	// Initialize log exporter for otel-collector sidecar
+	logExporter, err := otlploggrpc.New(context.Background())
+	if err != nil {
+		stdlog.Fatal("Failed to create log exporter: ", err)
+	}
+	loggerProvider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewSimpleProcessor(logExporter)))
 	global.SetLoggerProvider(loggerProvider)
 
 	logger = otelslog.NewLogger("weather", otelslog.WithLoggerProvider(loggerProvider))

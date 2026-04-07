@@ -26,6 +26,15 @@ data:
         tls:
           insecure: true
 
+      opensearch:
+        # REQUIRED: Main settings now live under 'http'
+        http:
+          endpoint: "https://opensearch-cluster-master:9200"
+          # Format is "Basic <base64(user:password)>"
+          headers:
+            Authorization: "Basic YWRtaW46UGFzczEyM0Ajd29yZAo="
+        logs_index: "otel-logs"
+
       # Use 'debug' for basic logging (formerly 'logging' exporter)
       debug:
         verbosity: basic
@@ -38,7 +47,7 @@ data:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp/jaeger]
+          exporters: [otlp/jaeger, opensearch]
         metrics:
           receivers: [otlp]
           processors: [batch]
@@ -46,4 +55,4 @@ data:
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [debug] # Replaced 'fluentd' with 'debug' for standard visibility
+          exporters: [debug, opensearch] # Replaced 'fluentd' with 'debug' for standard visibility

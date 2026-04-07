@@ -37,18 +37,13 @@ data:
         traces_index: "otel-traces"
         metrics_index: "otel-metrics"
 
-          opensearch:
+      opensearch:
         # REQUIRED: Main settings now live under 'http'
         http:
           endpoint: "https://opensearch-cluster-master:9200"
-      
-          # Use headers for authentication instead of 'user' and 'password'
           # Format is "Basic <base64(user:password)>"
           headers:
             Authorization: "Basic YWRtaW46UGFzczEyM0Ajd29yZAo="
-
-        # Index naming changed to dataset/namespace model in newer versions
-        # See documentation for "ss4o_" naming conventions
         logs_index: "otel-logs"
 
       extensions:
