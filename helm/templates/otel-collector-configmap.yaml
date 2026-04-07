@@ -14,11 +14,28 @@ data:
           http: {}
     exporters:
       prometheus:
-        endpoint: "0.0.0.0:8889"
+        endpoint: "prometheus-operated:9090"
+        tls:
+          insecure: true
       jaeger:
         endpoint: "jaeger:14250"
         tls:
           insecure: true
+      fluentd:
+        endpoint: "fluentd:24224"
+        tls:
+          insecure: true
+        logstash_format:
+          enabled: true
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 300s
+        sending_queue:
+          enabled: true
+          num_consumers: 10
+          queue_size: 100
     processors:
       batch:
     service:
@@ -31,3 +48,7 @@ data:
           receivers: [otlp]
           processors: [batch]
           exporters: [prometheus]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [fluentd]

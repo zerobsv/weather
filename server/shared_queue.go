@@ -1,7 +1,6 @@
 package weather
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -176,7 +175,7 @@ func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 		// Handle panic for each consumer
 		defer func() {
 			if err := recover(); err != nil {
-				log.Println("Consumer goroutine panicked:", err)
+				slogLogger.Error("Consumer goroutine panicked", "error", err)
 			}
 		}()
 

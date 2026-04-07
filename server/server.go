@@ -2,7 +2,8 @@ package weather
 
 import (
 	"context"
-	"log"
+	stdlog "log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,17 +13,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/metric"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 var (
-	httpRequestsTotal metric.Float64Counter
+	httpRequestsTotal   metric.Float64Counter
 	httpRequestDuration metric.Float64Histogram
-	meter metric.Meter
+	meter               metric.Meter
+	logger              log.Logger
+	slogLogger          *slog.Logger
 )
 
 func prometheusMiddleware() gin.HandlerFunc {
@@ -54,11 +61,17 @@ func WeatherServer() {
 	registry := prometheus.NewRegistry()
 	exporter, err := otelprom.New(otelprom.WithRegisterer(registry))
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(exporter))
 	otel.SetMeterProvider(provider)
 	meter = provider.Meter("weather")
+
+	loggerProvider := sdklog.NewLoggerProvider()
+	global.SetLoggerProvider(loggerProvider)
+	logger = global.Logger("weather")
+
+	slogLogger = otelslog.NewLogger("weather", otelslog.WithLoggerProvider(loggerProvider))
 
 	// Create instruments
 	httpRequestsTotal, err = meter.Float64Counter(
@@ -66,7 +79,7 @@ func WeatherServer() {
 		metric.WithDescription("Total number of HTTP requests"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 	httpRequestDuration, err = meter.Float64Histogram(
 		"http_request_duration_seconds",
@@ -74,7 +87,7 @@ func WeatherServer() {
 		metric.WithUnit("s"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 
 	initMetrics(meter)
@@ -97,7 +110,7 @@ func WeatherServer() {
 	// Add /metrics endpoint for Prometheus
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
 
-	log.Println("Starting gin gonic...")
+	slogLogger.Info("Starting gin gonic on :8080")
 
 	srv := &http.Server{
 		Addr:    ":8080",
@@ -110,7 +123,7 @@ func WeatherServer() {
 	go func() {
 		// service connections
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v\n", err)
+			stdlog.Fatalf("listen: %v\n", err)
 		}
 	}()
 
@@ -119,15 +132,17 @@ func WeatherServer() {
 	quit := make(chan os.Signal, 2)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutdown Server ...")
+
+	slogLogger.Info("Shutdown Server ...")
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server Shutdown:", err)
+		stdlog.Fatal("Server Shutdown:", err)
 	}
 
 	// catching ctx.Done(). timeout of 5 seconds.
 	<-ctx.Done()
-	log.Println("timeout of 5 seconds.")
-	log.Println("Server exiting")
+
+	slogLogger.Info("timeout of 5 seconds.")
+	slogLogger.Info("Server exiting")
 
 }

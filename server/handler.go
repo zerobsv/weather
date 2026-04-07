@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	stdlog "log"
 	"net/http"
 	"os"
 	"strings"
@@ -31,14 +31,14 @@ func initMetrics(m metric.Meter) {
 		metric.WithUnit("s"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 	weatherRequestCounter, err = m.Float64Counter(
 		"weather_requests_total",
 		metric.WithDescription("Total number of weather requests"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		stdlog.Fatal(err)
 	}
 }
 
@@ -129,11 +129,11 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 
 	requestUrl := fmt.Sprintf("http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
-	log.Printf("Making a GET request to %s", requestUrl)
+	slogLogger.Info("Making a GET request", "url", requestUrl)
 
 	resp, err := client.Get(requestUrl)
 
-	log.Printf("response: %v", resp)
+	slogLogger.Info("API response received", "status", resp)
 
 	if err != nil {
 		if os.IsTimeout(err) {
@@ -172,17 +172,17 @@ func getWeatherInternational(ctx *gin.Context) {
 
 	city := ctx.Param("location")
 
-	log.Printf("city param: %v", city)
+	slogLogger.Info("Processing city parameter", "city", city)
 
 	weatherData, err := instrumentedSendWeatherRequest(city)
 
 	if err != nil {
-		log.Printf("Error fetching weather data: %v", err)
+		slogLogger.Error("Error fetching weather data", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weather data"})
 		return
 	}
 
-	log.Println("Weather data: ", weatherData)
+	slogLogger.Info("Weather data retrieved", "city", weatherData.Name)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"city":        weatherData.Name,
@@ -209,17 +209,17 @@ func getWeatherLocal(ctx *gin.Context) {
 
 	city := "Bengaluru"
 
-	log.Printf("city param: %v", city)
+	slogLogger.Info("Fetching local weather", "city", city)
 
 	weatherData, err := instrumentedSendWeatherRequest(city)
 
 	if err != nil {
-		log.Printf("Error fetching weather data: %v", err)
+		slogLogger.Error("Error fetching weather data", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch weather data"})
 		return
 	}
 
-	log.Println("Weather data: ", weatherData)
+	slogLogger.Info("Weather data retrieved", "city", weatherData.Name)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"city":        weatherData.Name,
@@ -235,13 +235,13 @@ func stressTestHelper0(location string, sq *SharedQueue) error {
 	weatherData, err := instrumentedSendWeatherRequest(location)
 
 	if err != nil {
-		log.Println("pushing data with err: ", weatherData)
+		slogLogger.Info("Pushing empty data due to error", "location", location)
 		sq.Push(weatherData)
-		log.Printf("Error fetching weather data for %s: %v", location, err)
+		slogLogger.Error("Error fetching weather data", "location", location, "error", err)
 		return err
 	}
 
-	log.Println("pushing data: ", weatherData)
+	slogLogger.Info("Pushing weather data", "location", location)
 	sq.Push(weatherData)
 
 	return nil
@@ -280,7 +280,7 @@ func getWeatherStressTest0(ctx *gin.Context) {
 			defer wg.Done()
 			err := stressTestHelper0(city, sq)
 			if err != nil {
-				log.Printf("Weather fetch failed for city: %s", city)
+				slogLogger.Error("Weather fetch failed", "city", city)
 			}
 		}(city)
 	}
@@ -290,7 +290,7 @@ func getWeatherStressTest0(ctx *gin.Context) {
 
 	var stressResponse []gin.H
 
-	log.Println("All the results: ")
+	slogLogger.Info("Processing stress test 0 results")
 	for _, data := range sq.GetAll() {
 
 		stressResponse = append(stressResponse, gin.H{
@@ -300,7 +300,7 @@ func getWeatherStressTest0(ctx *gin.Context) {
 			// "description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
+		slogLogger.Info("Result", "city", data.Name, "country", data.Sys.Country, "temperature", fmt.Sprint(data.Main.Temp))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
@@ -313,12 +313,12 @@ func stressTestHelper1(location string, c chan WeatherData) error {
 
 	if err != nil {
 		c <- weatherData
-		log.Println("pushing data with err: ", weatherData)
-		log.Printf("Error fetching weather data for %s: %v", location, err)
+		slogLogger.Info("Pushing empty data due to error", "location", location)
+		slogLogger.Error("Error fetching weather data", "location", location, "error", err)
 		return err
 	}
 
-	log.Println("pushing data: ", weatherData)
+	slogLogger.Info("Pushing weather data", "location", location)
 	c <- weatherData
 	return nil
 
@@ -342,14 +342,14 @@ func getWeatherStressTest1(ctx *gin.Context) {
 		go func(city string) {
 			err := stressTestHelper1(city, channel)
 			if err != nil {
-				log.Printf("Weather fetch failed for city: %s", city)
+				slogLogger.Error("Weather fetch failed", "city", city)
 			}
 		}(city)
 	}
 
 	var stressResponse []gin.H
 
-	log.Println("All the results: ")
+	slogLogger.Info("Processing stress test 1 results")
 	for i := 0; i < len(cities); i++ {
 
 		// CSP Advanatage: No barrier, all the channel slots are polled for data and all
@@ -364,7 +364,7 @@ func getWeatherStressTest1(ctx *gin.Context) {
 			// "description": data.Weather[0].Description,
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
+		slogLogger.Info("Result", "city", data.Name, "country", data.Sys.Country, "temperature", fmt.Sprint(data.Main.Temp))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
@@ -376,13 +376,13 @@ func stressTestHelper2(location string, sq *SharedQueue) error {
 	weatherData, err := instrumentedSendWeatherRequest(location)
 
 	if err != nil {
-		log.Println("pushing data with err: ", weatherData)
+		slogLogger.Info("Pushing empty data due to error", "location", location)
 		sq.Push(weatherData)
-		log.Printf("Error fetching weather data for %s: %v", location, err)
+		slogLogger.Error("Error fetching weather data", "location", location, "error", err)
 		return err
 	}
 
-	log.Println("pushing data: ", weatherData)
+	slogLogger.Info("Pushing weather data", "location", location)
 	sq.Push(weatherData)
 
 	return nil
@@ -411,7 +411,7 @@ func getWeatherStressTest2(ctx *gin.Context) {
 		go func(city string) {
 			err := stressTestHelper2(city, sq)
 			if err != nil {
-				log.Printf("Weather fetch failed for city: %s", city)
+				slogLogger.Error("Weather fetch failed", "city", city)
 			}
 		}(city)
 	}
@@ -420,7 +420,7 @@ func getWeatherStressTest2(ctx *gin.Context) {
 
 	var stressResponse []gin.H
 
-	log.Println("All the results: ")
+	slogLogger.Info("Processing stress test 2 results")
 	for _, data := range results {
 
 		// description produces a BoundsError which is not in the scope of what I'm trying to do here
@@ -431,8 +431,8 @@ func getWeatherStressTest2(ctx *gin.Context) {
 			// "description": data.Weather[0].Description,
 		})
 
-		// log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
+		// slogLogger.Info("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp), " Description: ", data.Weather[0].Description)
+		slogLogger.Info("Result", "city", data.Name, "country", data.Sys.Country, "temperature", fmt.Sprint(data.Main.Temp))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
@@ -444,13 +444,13 @@ func stressTestHelper3(location string, sq *SharedQueue) error {
 	weatherData, err := instrumentedSendWeatherRequest(location)
 
 	if err != nil {
-		log.Println("pushing data with err: ", weatherData)
+		slogLogger.Info("Pushing empty data due to error", "location", location)
 		sq.FastPush(weatherData)
-		log.Printf("Error fetching weather data for %s: %v", location, err)
+		slogLogger.Error("Error fetching weather data", "location", location, "error", err)
 		return err
 	}
 
-	log.Println("pushing data: ", weatherData)
+	slogLogger.Info("Pushing weather data", "location", location)
 	sq.FastPush(weatherData)
 
 	return nil
@@ -482,7 +482,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 		go func(city string) {
 			err := stressTestHelper3(city, sq)
 			if err != nil {
-				log.Printf("Weather fetch failed for city: %s", city)
+				slogLogger.Error("Weather fetch failed", "city", city)
 			}
 		}(city)
 	}
@@ -493,7 +493,7 @@ func getWeatherStressTest3(ctx *gin.Context) {
 	// Handle panic for consumer goroutine
 	defer func() {
 		if err := recover(); err != nil {
-			log.Println("Consumer goroutine panicked:", err)
+			slogLogger.Error("Consumer goroutine panicked", "error", err)
 		}
 	}()
 
@@ -501,10 +501,10 @@ func getWeatherStressTest3(ctx *gin.Context) {
 
 	var stressResponse []gin.H
 
-	log.Println("All the results: ")
+	slogLogger.Info("Processing stress test 3 results")
 	for i := 0; i < len(cities); i++ {
 
-		log.Printf("$$$$$$$$$$$$ ITER %d $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS PRE: %v", i, sq.data)
+		slogLogger.Debug("Queue iteration", "iteration", i, "queueSize", len(sq.data))
 
 		data := <-channel
 
@@ -515,9 +515,9 @@ func getWeatherStressTest3(ctx *gin.Context) {
 			// "description": fmt.Sprint(data.Weather[0].Description),
 		})
 
-		log.Println("City: ", data.Name, " Country: ", data.Sys.Country, " Temperature: ", fmt.Sprint(data.Main.Temp))
+		slogLogger.Info("Result", "city", data.Name, "country", data.Sys.Country, "temperature", fmt.Sprint(data.Main.Temp))
 
-		log.Printf("$$$$$$$$$$$$ ITER %d $$$$$$$$$$$$$$$$$$$ QUEUE CONTENTS POST: %v", i, sq.data)
+		slogLogger.Debug("Queue post-iteration", "iteration", i, "queueSize", len(sq.data))
 	}
 
 	ctx.JSON(http.StatusOK, stressResponse)
