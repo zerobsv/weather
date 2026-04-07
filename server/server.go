@@ -84,7 +84,7 @@ func WeatherServer() {
 	if err != nil {
 		stdlog.Fatal("Failed to create log exporter: ", err)
 	}
-	loggerProvider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewSimpleProcessor(logExporter)))
+	loggerProvider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)))
 	global.SetLoggerProvider(loggerProvider)
 
 	logger = otelslog.NewLogger("weather", otelslog.WithLoggerProvider(loggerProvider))

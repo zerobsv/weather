@@ -82,6 +82,10 @@ helm install my-opensearch opensearch/opensearch -n logging -f opensearch-values
 
 helm install my-dashboards opensearch/opensearch-dashboards -n logging
 
+### Init
+
+- Do a 'PUT otel-logs-custom' command on the dev tools box, in the opensearch dashboard, to create the index for logs
+- Do a 'PUT otel-traces-custom' command on the dev tools box in the opensearch dashboard, to create the traces index
 
 7. Install the weather helm chart
 

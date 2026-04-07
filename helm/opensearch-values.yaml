@@ -27,5 +27,5 @@ persistence:
 # 5. Required initial admin password for version 2.12+
 extraEnvs:
  - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
-   value: "Pass123@#word"
+   value: "Pass123#word"
 

@@ -580,7 +580,7 @@ func instrumentedGetWeatherLocal(ctx *gin.Context) {
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.String("location", "Bengaluru"),
+		attribute.String("location", "Sydney"),
 		attribute.String("method", ctx.Request.Method),
 		attribute.String("path", ctx.Request.URL.Path),
 	)

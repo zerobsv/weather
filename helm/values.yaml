@@ -25,21 +25,22 @@ openTelemetry:
   # Set to true to use OpenTelemetry Collector sidecar
   collectorSidecar:
     enabled: true
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.142.0
     resources:
       requests:
         cpu: 50m
         memory: 64Mi
       limits:
-        cpu: 250m
-        memory: 256Mi
+        cpu: 500m
+        memory: 512Mi
   # OpenTelemetry environment variables
   env:
     # Exporter configuration
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger-collector.observability.svc.cluster.local:4317"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://0.0.0.0:4317"
     OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
     OTEL_TRACES_EXPORTER: "otlp"
     OTEL_METRICS_EXPORTER: "otlp"
+    OTEL_LOGS_EXPORTER: "otlp"
     # Service configuration
     OTEL_SERVICE_NAME: "weather-service"
     OTEL_SDK_DISABLED: "false"
