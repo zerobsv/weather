@@ -19,8 +19,6 @@ data:
       # Requires 'otel/opentelemetry-collector-contrib' image
       prometheus:
         endpoint: "0.0.0.0:8889" # The port Prometheus will scrape from the collector
-        resource_to_telemetry_conversion:
-          enabled: true
       
       # Jaeger now recommends using OTLP directly
       otlp/jaeger:

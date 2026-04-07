@@ -119,10 +119,17 @@ func WeatherServer() {
 	router.GET("/weather/stress2", instrumentedGetWeatherStressTest2)
 	router.GET("/weather/stress3", instrumentedGetWeatherStressTest3)
 
-	// Add /metrics endpoint for Prometheus
-	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
-
 	logger.Info("Starting gin gonic on :8081")
+
+	// Setup metrics server on separate port
+	metricsRouter := gin.New()
+	metricsRouter.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
+	metricsServer := &http.Server{
+		Addr:    ":8889",
+		Handler: metricsRouter,
+	}
+
+	logger.Info("Starting metrics server on :8889")
 
 	srv := &http.Server{
 		Addr:    ":8081",
@@ -140,6 +147,14 @@ func WeatherServer() {
 		}
 	}()
 
+	go func() {
+		// metrics server connections
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("Failed to start metrics server", "error", err)
+			stdlog.Fatalf("listen: %v\n", err)
+		}
+	}()
+
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
 	quit := make(chan os.Signal, 2)
@@ -151,6 +166,11 @@ func WeatherServer() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("Server Shutdown Failed", "error", err)
 		stdlog.Fatal("Server Shutdown:", err)
+	}
+
+	if err := metricsServer.Shutdown(ctx); err != nil {
+		logger.Error("Metrics Server Shutdown Failed", "error", err)
+		stdlog.Fatal("Metrics Server Shutdown:", err)
 	}
 
 	// catching ctx.Done(). timeout of 5 seconds.

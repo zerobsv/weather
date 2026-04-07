@@ -213,7 +213,7 @@ func getWeatherInternational(ctx *gin.Context) {
 // None
 func getWeatherLocal(ctx *gin.Context) {
 
-	city := "Bengaluru"
+	city := "Sydney"
 
 	logger.Info("Fetching local weather", "city", city)
 
