@@ -1,5 +1,5 @@
-$ minikube start --driver=docker --nodes=3
-$ minikube image load weather:latest
+$ minikube start -p devx --driver=docker --nodes=3 --memory=4096m
+$ minikube image load -p devx weather:latest
 
 
 1. Create a kubernetes namespace for monitoring
@@ -37,8 +37,6 @@ kubectl create clusterrolebinding headlamp-admin --serviceaccount=kube-system:he
 kubectl create token headlamp-admin -n kube-system
 
 
-
-
 4. Port forward services from the cluster
 
 $ kubectl port-forward -n monitoring service/prometheus-operated 9090:9090
@@ -71,22 +69,19 @@ $ kubectl apply -f jaeger-operator.yaml -n observability
 
 $ kubectl apply -f jaeger-allinone.yaml -n observability
 
-$ kubectl get jaegers
+$ kubectl get jaegers -n observability
 
 $ kubectl port-forward service/my-jaeger-query 16686:16686 -n observability
 
 
-8. ElasticSearch
+### Install OpenSearch
 
-helm repo add elastic https://helm.elastic.co
-helm repo update
+kubectl create ns logging
 
-helm install elasticsearch elastic/elasticsearch --namespace=logging --create-namespace -f elastic-values.yaml 
-
-helm install kibana elastic/kibana --namespace logging
+helm install my-opensearch opensearch/opensearch -n logging -f opensearch-values.yaml
 
 
-9. Install the weather helm chart
+7. Install the weather helm chart
 
 $ helm install weather .
 

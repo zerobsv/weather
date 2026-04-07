@@ -1,0 +1,28 @@
+# lightweight-values.yaml
+
+# 1. Force single node mode (automatically sets replicas to 1)
+singleNode: true
+
+# 2. Reduce Resource Footprint
+resources:
+  requests:
+    cpu: "250m"      # Minimal CPU request
+    memory: "1Gi"    # Lowered from default 8GiB/4GiB recommendations
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+# 3. Adjust JVM Heap Size
+# Important: OTel logs can be heavy; heap should be ~50% of container memory
+opensearchJavaOpts: "-Xmx512M -Xms512M"
+
+# 4. Persistence (optional: set to false for ephemeral testing)
+persistence:
+  enabled: false
+  size: 4Gi
+
+# 5. Required initial admin password for version 2.12+
+extraEnvs:
+  - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+    value: "Pass123@#word"
+
