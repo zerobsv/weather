@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "weather.fullname" . }}-otel-collector-config
+  labels:
+    app: {{ .Values.labels.app }}
+    release: {{ .Values.labels.release }}
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+
+    exporters:
+      # Requires 'otel/opentelemetry-collector-contrib' image
+      prometheus:
+        endpoint: "0.0.0.0:8889" # The port Prometheus will scrape from the collector
+        resource_to_telemetry_conversion:
+          enabled: true
+      
+      # Jaeger now recommends using OTLP directly
+      otlp/jaeger:
+        endpoint: "jaeger-collector.observability.svc.cluster.local:4317" # Standard OTLP port for modern Jaeger
+        tls:
+          insecure: true
+
+      opensearch:
+        http:
+          endpoint: "http://opensearch-master:9200" # Use the service name from Helm
+        auth:
+          authenticator: basicauth
+        logs_index: "otel-logs"
+        traces_index: "otel-traces"
+        metrics_index: "otel-metrics"
+
+      opensearch:
+        # REQUIRED: Main settings now live under 'http'
+        http:
+          endpoint: "https://opensearch-cluster-master:9200"
+          # Format is "Basic <base64(user:password)>"
+          headers:
+            Authorization: "Basic YWRtaW46UGFzczEyM0Ajd29yZAo="
+        logs_index: "otel-logs"
+
+      extensions:
+        basicauth:
+          client_auth:
+            username: "admin"
+            password: "password"
+
+      # Use 'debug' for basic logging (formerly 'logging' exporter)
+      debug:
+        verbosity: basic
+
+    processors:
+      batch:
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp/jaeger, opensearch]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheus]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [opensearch, debug] # Replaced 'fluentd' with 'debug' for standard visibility
