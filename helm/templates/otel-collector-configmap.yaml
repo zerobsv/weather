@@ -15,6 +15,12 @@ data:
           http:
             endpoint: "0.0.0.0:4318"
 
+    extensions:
+      basicauth/client:
+        client_auth:
+          username: "admin"
+          password: "Pass123@#word"
+
     exporters:
       # Requires 'otel/opentelemetry-collector-contrib' image
       prometheus:
@@ -29,8 +35,12 @@ data:
       opensearch:
         # REQUIRED: Main settings now live under 'http'
         http:
-          endpoint: "opensearch-cluster-master.logging.svc.cluster.local:9200"
-        logs_index: "otel-logs"
+          endpoint: "https://opensearch-cluster-master.logging.svc.cluster.local:9200"
+          auth:
+            authenticator: basicauth/client
+          tls:
+            insecure_skip_verify: true
+        logs_index: "otel-logs-custom"
 
       # Use 'debug' for basic logging (formerly 'logging' exporter)
       debug:
@@ -40,6 +50,7 @@ data:
       batch:
 
     service:
+      extensions: [basicauth/client]
       pipelines:
         traces:
           receivers: [otlp]

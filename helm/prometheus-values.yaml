@@ -5,5 +5,5 @@ prometheus:
       - job_name: 'otel-collector'
         scrape_interval: 5s
         static_configs:
-          - targets: ['weather-service.default.svc.cluster.local:8889']
+          - targets: ['weather-service.default.svc.cluster.local:8082']
         metrics_path: '/metrics'
