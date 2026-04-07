@@ -14,13 +14,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
 	weatherRequestDuration metric.Float64Histogram
 	weatherRequestCounter  metric.Float64Counter
+	tracer                 trace.Tracer
 )
 
 func initMetrics(m metric.Meter) {
@@ -40,6 +43,9 @@ func initMetrics(m metric.Meter) {
 	if err != nil {
 		stdlog.Fatal(err)
 	}
+
+	// Initialize tracer from global provider
+	tracer = otel.Tracer("weather-service")
 }
 
 type Coordinates struct {
@@ -525,74 +531,149 @@ func getWeatherStressTest3(ctx *gin.Context) {
 }
 
 func instrumentedSendWeatherRequest(location string) (WeatherData, error) {
+	ctx, span := tracer.Start(context.Background(), "sendWeatherRequest")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("location", location),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(ctx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("sendWeatherRequest")))
 	data, err := sendWeatherRequest(location)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(ctx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("sendWeatherRequest")))
+
+	if err != nil {
+		span.RecordError(err)
+	}
+
 	return data, err
 }
 
 func instrumentedGetWeatherInternational(ctx *gin.Context) {
+	traceCtx, span := tracer.Start(ctx.Request.Context(), "getWeatherInternational")
+	defer span.End()
+
+	location := ctx.Param("location")
+	span.SetAttributes(
+		attribute.String("location", location),
+		attribute.String("method", ctx.Request.Method),
+		attribute.String("path", ctx.Request.URL.Path),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(traceCtx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherInternational")))
 	getWeatherInternational(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(traceCtx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherInternational")))
+
+	span.SetAttributes(attribute.Int("http.status_code", ctx.Writer.Status()))
 }
 
 func instrumentedGetWeatherLocal(ctx *gin.Context) {
+	traceCtx, span := tracer.Start(ctx.Request.Context(), "getWeatherLocal")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("location", "Bengaluru"),
+		attribute.String("method", ctx.Request.Method),
+		attribute.String("path", ctx.Request.URL.Path),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(traceCtx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherLocal")))
 	getWeatherLocal(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(traceCtx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherLocal")))
+
+	span.SetAttributes(attribute.Int("http.status_code", ctx.Writer.Status()))
 }
 
 func instrumentedGetWeatherStressTest0(ctx *gin.Context) {
+	traceCtx, span := tracer.Start(ctx.Request.Context(), "getWeatherStressTest0")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("method", ctx.Request.Method),
+		attribute.String("path", ctx.Request.URL.Path),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(traceCtx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest0")))
 	getWeatherStressTest0(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(traceCtx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest0")))
+
+	span.SetAttributes(attribute.Int("http.status_code", ctx.Writer.Status()))
 }
 
 func instrumentedGetWeatherStressTest1(ctx *gin.Context) {
+	traceCtx, span := tracer.Start(ctx.Request.Context(), "getWeatherStressTest1")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("method", ctx.Request.Method),
+		attribute.String("path", ctx.Request.URL.Path),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(traceCtx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest1")))
 	getWeatherStressTest1(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(traceCtx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest1")))
+
+	span.SetAttributes(attribute.Int("http.status_code", ctx.Writer.Status()))
 }
 
 func instrumentedGetWeatherStressTest2(ctx *gin.Context) {
+	traceCtx, span := tracer.Start(ctx.Request.Context(), "getWeatherStressTest2")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("method", ctx.Request.Method),
+		attribute.String("path", ctx.Request.URL.Path),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(traceCtx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest2")))
 	getWeatherStressTest2(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(traceCtx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest2")))
+
+	span.SetAttributes(attribute.Int("http.status_code", ctx.Writer.Status()))
 }
 
 func instrumentedGetWeatherStressTest3(ctx *gin.Context) {
+	traceCtx, span := tracer.Start(ctx.Request.Context(), "getWeatherStressTest3")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("method", ctx.Request.Method),
+		attribute.String("path", ctx.Request.URL.Path),
+	)
+
 	start := time.Now()
-	weatherRequestCounter.Add(context.Background(), 1,
+	weatherRequestCounter.Add(traceCtx, 1,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest3")))
 	getWeatherStressTest3(ctx)
 	duration := time.Since(start).Seconds()
-	weatherRequestDuration.Record(context.Background(), duration,
+	weatherRequestDuration.Record(traceCtx, duration,
 		metric.WithAttributes(attribute.Key("endpoint").String("getWeatherStressTest3")))
+
+	span.SetAttributes(attribute.Int("http.status_code", ctx.Writer.Status()))
 }
 
 // ParseApiKey reads the API key from a file and returns it.

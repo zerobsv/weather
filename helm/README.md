@@ -17,10 +17,6 @@ $ helm repo update
 
 $ helm upgrade --install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace --set grafana.service.port=3001
 
-4. Install the weather helm chart
-
-$ helm install weather .
-
 
 ### Headlamp install
 
@@ -43,14 +39,13 @@ kubectl create token headlamp-admin -n kube-system
 
 
 
-5. Port forward required services from the cluster
+4. Port forward services from the cluster
 
-$ kubectl port-forward svc/weather-weather 8080:80
-$ kubectl port-forward -n monitoring service/prometheus-operator-kube-p-prometheus 9090:9090
+$ kubectl port-forward -n monitoring service/prometheus-operated 9090:9090
 $ kubectl port-forward -n monitoring service/prometheus-operator-grafana 3001:3001
 
 
-6. Install Jaeger tracing using manifests
+5. Install Jaeger tracing using manifests
 
 ### Install Cert Manager
 
@@ -67,12 +62,12 @@ Edit the yaml file to change the kube-rbac-proxy image to,
 # Change from:
 image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
 # To (Example):
-image: quay.io/brancz/kube-rbac-proxy:v0.15.0
+image: quay.io/brancz/kube-rbac-proxy:v0.11.0
 
 $ kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.36.0/jaeger-operator.yaml -n observability
 
 
-7. Creating a Jaeger Instance
+6. Creating a Jaeger Instance
 
 $ kubectl apply -f jaeger-instance.yaml
 
@@ -80,3 +75,10 @@ $ kubectl get jaegers
 
 $ kubectl port-forward service/my-jaeger-query 16686:16686 -n observability
 
+
+8. Install the weather helm chart
+
+$ helm install weather .
+
+
+$ kubectl port-forward svc/weather-weather 8081:8081
