@@ -13,20 +13,3 @@ spec:
     - name: http
       port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}
-    - name: metrics
-      port: 8082
-      targetPort: 8082
-      protocol: TCP
-    - name: otlp-http
-      port: 4318
-      targetPort: 4318
-      protocol: TCP
-    - name: otlp-grpc
-      port: 4317
-      targetPort: 4317
-      protocol: TCP
-    - name: prometheus-exporter
-      port: 8889
-      targetPort: 8889
-      protocol: TCP
-
