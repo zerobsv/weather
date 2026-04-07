@@ -48,6 +48,8 @@ spec:
               name: otlp-http
             - containerPort: 14250
               name: jaeger-grpc
+            - containerPort: 8889
+              name: prometheus
           volumeMounts:
             - name: otel-collector-config
               mountPath: /etc/otel-collector-config.yaml

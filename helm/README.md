@@ -64,12 +64,12 @@ image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
 # To (Example):
 image: quay.io/brancz/kube-rbac-proxy:v0.11.0
 
-$ kubectl create -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.36.0/jaeger-operator.yaml -n observability
+$ kubectl apply -f jaeger-operator.yaml -n observability
 
 
 6. Creating a Jaeger Instance
 
-$ kubectl apply -f jaeger-instance.yaml
+$ kubectl apply -f jaeger-allinone.yaml -n observability
 
 $ kubectl get jaegers
 

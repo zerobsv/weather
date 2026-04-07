@@ -10,47 +10,42 @@ data:
     receivers:
       otlp:
         protocols:
-          grpc: {}
-          http: "0.0.0.0:4318"
-          tls:
-            insecure: true
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+
     exporters:
+      # Requires 'otel/opentelemetry-collector-contrib' image
       prometheus:
-        endpoint: "prometheus-operated:8889"
+        endpoint: "0.0.0.0:8889" # The port Prometheus will scrape from the collector
+        resource_to_telemetry_conversion:
+          enabled: true
+      
+      # Jaeger now recommends using OTLP directly
+      otlp/jaeger:
+        endpoint: "jaeger-collector.observability.svc.cluster.local:4317" # Standard OTLP port for modern Jaeger
         tls:
           insecure: true
-      jaeger:
-        endpoint: "jaeger-collector:14250"
-        tls:
-          insecure: true
-      fluentd:
-        endpoint: "fluentd:24224"
-        tls:
-          insecure: true
-        logstash_format:
-          enabled: true
-        retry_on_failure:
-          enabled: true
-          initial_interval: 5s
-          max_interval: 30s
-          max_elapsed_time: 300s
-        sending_queue:
-          enabled: true
-          num_consumers: 10
-          queue_size: 100
+
+      # Use 'debug' for basic logging (formerly 'logging' exporter)
+      debug:
+        verbosity: basic
+
     processors:
       batch:
+
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [jaeger]
+          exporters: [otlp/jaeger]
         metrics:
-          receivers: [prometheus]
+          receivers: [otlp]
           processors: [batch]
           exporters: [prometheus]
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [fluentd]
+          exporters: [debug] # Replaced 'fluentd' with 'debug' for standard visibility

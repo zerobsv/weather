@@ -9,6 +9,13 @@ spec:
   allInOne:
     image: jaegertracing/all-in-one:latest
     options:
+      collector:
+        otlp:
+          enabled: true
+          grpc:
+            host-port: 4317
+          http:
+            host-port: 4318
       log-level: info
   storage:
     type: memory
