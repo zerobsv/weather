@@ -1,0 +1,19 @@
+# light-values.yaml
+replicas: 2
+
+# Disable security for local testing (optional, not for production)
+security:
+  enabled: false
+
+# Resource management
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+# Reduce JVM Heap size
+esJavaOpts: "-Xms512m -Xmx512m"
+

@@ -43,6 +43,9 @@ openTelemetry:
     # Service configuration
     OTEL_SERVICE_NAME: "weather-service"
     OTEL_SDK_DISABLED: "false"
+    # ElasticSearch credentials
+    ELASTIC_USER: "elastic"
+    ELASTIC_PASSWORD: "gBhlQzSwhumsDUdQ"
 
 labels:
   app: weather

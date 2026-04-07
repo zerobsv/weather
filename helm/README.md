@@ -62,7 +62,7 @@ Edit the yaml file to change the kube-rbac-proxy image to,
 # Change from:
 image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
 # To (Example):
-image: quay.io/brancz/kube-rbac-proxy:v0.11.0
+image: quay.io/brancz/kube-rbac-proxy:v0.15.0
 
 $ kubectl apply -f jaeger-operator.yaml -n observability
 
@@ -76,9 +76,20 @@ $ kubectl get jaegers
 $ kubectl port-forward service/my-jaeger-query 16686:16686 -n observability
 
 
-8. Install the weather helm chart
+8. ElasticSearch
+
+helm repo add elastic https://helm.elastic.co
+helm repo update
+
+helm install elasticsearch elastic/elasticsearch --namespace=logging --create-namespace -f elastic-values.yaml 
+
+helm install kibana elastic/kibana --namespace logging
+
+
+9. Install the weather helm chart
 
 $ helm install weather .
 
-
 $ kubectl port-forward svc/weather-weather 8081:8081
+
+
