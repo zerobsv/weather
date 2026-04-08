@@ -57,9 +57,9 @@ $ wget https://github.com/jaegertracing/jaeger-operator/releases/download/v1.36.
 
 Edit the yaml file to change the kube-rbac-proxy image to,
 
-# Change from:
+#### Change from:
 image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
-# To (Example):
+#### To (Example):
 image: quay.io/brancz/kube-rbac-proxy:v0.15.0
 
 $ kubectl apply -f jaeger-operator.yaml -n observability
@@ -76,21 +76,23 @@ $ kubectl port-forward service/jaeger-query 16686:16686 -n observability
 
 ### Install OpenSearch
 
-kubectl create ns logging
+$ kubectl create ns logging
+ 
+$ helm install my-opensearch opensearch/opensearch -n logging -f opensearch-values.yaml
 
-helm install my-opensearch opensearch/opensearch -n logging -f opensearch-values.yaml
-
-helm install my-dashboards opensearch/opensearch-dashboards -n logging
+$ helm install my-dashboards opensearch/opensearch-dashboards -n logging
 
 ### Init
 
 - Do a 'PUT otel-logs-custom' command on the dev tools box, in the opensearch dashboard, to create the index for logs
 - Do a 'PUT otel-traces-custom' command on the dev tools box in the opensearch dashboard, to create the traces index
 
+$ kubectl port-forward -n logging svc/my-dashboards-opensearch-dashboards 5601:5601
+
 7. Install the weather helm chart
 
 $ helm install weather .
 
-$ kubectl port-forward svc/weather-weather 8081:8081
+$ kubectl port-forward svc/weather-service 8081:8081
 
 

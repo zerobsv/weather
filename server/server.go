@@ -17,24 +17,28 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/metric"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
-	httpRequestsTotal   metric.Float64Counter
-	httpRequestDuration metric.Float64Histogram
-	meter               metric.Meter
-	logger              *slog.Logger
-	traceProvider       *sdktrace.TracerProvider
+	httpRequestsTotal      metric.Float64Counter
+	httpRequestDuration    metric.Float64Histogram
+	meter                  metric.Meter
+	logger                 *slog.Logger
+	traceProvider          *sdktrace.TracerProvider
+	weatherRequestDuration metric.Float64Histogram
+	weatherRequestCounter  metric.Float64Counter
+	tracer                 trace.Tracer
 )
 
-func prometheusMiddleware() gin.HandlerFunc {
+func otelMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
@@ -58,15 +62,40 @@ func prometheusMiddleware() gin.HandlerFunc {
 	}
 }
 
-func WeatherServer() {
-
-	registry := prometheus.NewRegistry()
-	exporter, err := otelprom.New(otelprom.WithRegisterer(registry))
+func initMetrics(m metric.Meter) {
+	var err error
+	weatherRequestDuration, err = m.Float64Histogram(
+		"weather_request_duration_seconds",
+		metric.WithDescription("Histogram of response time for weather requests in seconds"),
+		metric.WithUnit("s"),
+	)
 	if err != nil {
 		stdlog.Fatal(err)
 	}
-	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(exporter))
+	weatherRequestCounter, err = m.Float64Counter(
+		"weather_requests_total",
+		metric.WithDescription("Total number of weather requests"),
+	)
+	if err != nil {
+		stdlog.Fatal(err)
+	}
+
+	// Initialize tracer from global provider
+	tracer = otel.Tracer("weather-service")
+}
+
+func WeatherServer() {
+
+	// Create a new Prometheus registry for internal metrics endpoint
+	registry := prometheus.NewRegistry()
+
+	// Initialize metric exporter for otel-collector sidecar
+	exporter, _ := otlpmetricgrpc.New(context.Background(), otlpmetricgrpc.WithEndpoint("0.0.0.0:4317"), otlpmetricgrpc.WithInsecure())
+	reader := sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(5*time.Second))
+
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(provider)
+
 	meter = provider.Meter("weather")
 
 	// Initialize trace exporter for otel-collector sidecar
@@ -112,8 +141,8 @@ func WeatherServer() {
 
 	router := gin.Default()
 
-	// Add Prometheus middleware
-	router.Use(prometheusMiddleware())
+	// Add OpenTelemetry middleware
+	router.Use(otelMiddleware())
 
 	// Define routes
 	router.GET("/", getHandleDefaultRoute)
@@ -125,17 +154,9 @@ func WeatherServer() {
 	router.GET("/weather/stress2", instrumentedGetWeatherStressTest2)
 	router.GET("/weather/stress3", instrumentedGetWeatherStressTest3)
 
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
+
 	logger.Info("Starting gin gonic on :8081")
-
-	// Setup metrics server on separate port
-	metricsRouter := gin.New()
-	metricsRouter.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
-	metricsServer := &http.Server{
-		Addr:    ":8082",
-		Handler: metricsRouter,
-	}
-
-	logger.Info("Starting metrics server on :8082")
 
 	srv := &http.Server{
 		Addr:    ":8081",
@@ -153,14 +174,6 @@ func WeatherServer() {
 		}
 	}()
 
-	go func() {
-		// metrics server connections
-		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Failed to start metrics server", "error", err)
-			stdlog.Fatalf("listen: %v\n", err)
-		}
-	}()
-
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
 	quit := make(chan os.Signal, 2)
@@ -174,11 +187,6 @@ func WeatherServer() {
 		stdlog.Fatal("Server Shutdown:", err)
 	}
 
-	if err := metricsServer.Shutdown(ctx); err != nil {
-		logger.Error("Metrics Server Shutdown Failed", "error", err)
-		stdlog.Fatal("Metrics Server Shutdown:", err)
-	}
-
 	// catching ctx.Done(). timeout of 5 seconds.
 	<-ctx.Done()
 
@@ -188,6 +196,16 @@ func WeatherServer() {
 	// Shutdown trace provider to flush remaining spans
 	if err := traceProvider.Shutdown(context.Background()); err != nil {
 		logger.Error("Failed to shutdown trace provider", "error", err)
+	}
+
+	// Shutdown logger provider to flush remaining logs
+	if err := loggerProvider.Shutdown(context.Background()); err != nil {
+		logger.Error("Failed to shutdown logger provider", "error", err)
+	}
+
+	// Shutdown metric provider to flush remaining metrics
+	if err := provider.Shutdown(context.Background()); err != nil {
+		logger.Error("Failed to shutdown metric provider", "error", err)
 	}
 
 }

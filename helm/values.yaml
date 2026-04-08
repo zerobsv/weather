@@ -31,8 +31,8 @@ openTelemetry:
         cpu: 50m
         memory: 64Mi
       limits:
-        cpu: 500m
-        memory: 512Mi
+        cpu: 250m
+        memory: 256Mi
   # OpenTelemetry environment variables
   env:
     # Exporter configuration

@@ -14,7 +14,7 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
-    - name: prometheus
-      port: 8082
-      targetPort: 8082
+    - name: metrics
+      port: 8889
+      targetPort: 8889
       protocol: TCP

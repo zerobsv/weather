@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	stdlog "log"
 	"net/http"
 	"os"
 	"strings"
@@ -14,39 +13,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
 )
-
-var (
-	weatherRequestDuration metric.Float64Histogram
-	weatherRequestCounter  metric.Float64Counter
-	tracer                 trace.Tracer
-)
-
-func initMetrics(m metric.Meter) {
-	var err error
-	weatherRequestDuration, err = m.Float64Histogram(
-		"weather_request_duration_seconds",
-		metric.WithDescription("Histogram of response time for weather requests in seconds"),
-		metric.WithUnit("s"),
-	)
-	if err != nil {
-		stdlog.Fatal(err)
-	}
-	weatherRequestCounter, err = m.Float64Counter(
-		"weather_requests_total",
-		metric.WithDescription("Total number of weather requests"),
-	)
-	if err != nil {
-		stdlog.Fatal(err)
-	}
-
-	// Initialize tracer from global provider
-	tracer = otel.Tracer("weather-service")
-}
 
 type Coordinates struct {
 	Longitude float64 `json:"lon"`
