@@ -61,7 +61,7 @@ data:
           exporters: [otlp/jaeger, opensearch]
         metrics:
           receivers: [otlp]
-          processors: []
+          processors: [batch]
           exporters: [prometheus]
         logs:
           receivers: [otlp]

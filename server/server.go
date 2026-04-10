@@ -91,7 +91,7 @@ func WeatherServer() {
 
 	// Initialize metric exporter for otel-collector sidecar
 	exporter, _ := otlpmetricgrpc.New(context.Background(), otlpmetricgrpc.WithEndpoint("0.0.0.0:4317"), otlpmetricgrpc.WithInsecure())
-	reader := sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(5*time.Second))
+	reader := sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(500*time.Millisecond))
 
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(provider)
