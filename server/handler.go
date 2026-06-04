@@ -673,7 +673,7 @@ func parseApiKey() (string, error) {
 // None
 func getHandleDefaultRoute(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{
-		"message": "the weather is fine.",
+		"message": "the weather is somewhat regretful.",
 	})
 }
 
