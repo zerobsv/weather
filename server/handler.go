@@ -100,28 +100,26 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 		return WeatherData{}, fmt.Errorf("could not parse api key %v", err)
 	}
 
-	client := http.Client{Timeout: time.Duration(200) * time.Millisecond}
+	client := http.Client{Timeout: 5 * time.Second}
 
-	requestUrl := fmt.Sprintf("http://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
+	requestUrl := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
-	logger.Info("Making a GET request", "url", requestUrl)
+	logger.Info("Making a GET request", "location", location)
 
 	resp, err := client.Get(requestUrl)
-
-	logger.Info("API response received", "status", resp)
-
 	if err != nil {
-		if os.IsTimeout(err) {
-			return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
+		if resp != nil {
+			resp.Body.Close()
 		}
-		return WeatherData{}, fmt.Errorf("failed to fetch weather data: %v", err)
+		return WeatherData{}, fmt.Errorf("failed to fetch weather data: %w", err)
 	}
+	defer resp.Body.Close()
+
+	logger.Info("API response received", "status", resp.StatusCode)
 
 	if resp.StatusCode != http.StatusOK {
-		return WeatherData{}, fmt.Errorf("weather API request failed to %s: %v", requestUrl, err)
+		return WeatherData{}, fmt.Errorf("weather API request failed with status %s", resp.Status)
 	}
-
-	defer resp.Body.Close()
 
 	weatherData := WeatherData{}
 	err = json.NewDecoder(resp.Body).Decode(&weatherData)

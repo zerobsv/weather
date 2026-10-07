@@ -2,12 +2,22 @@ package weather
 
 import (
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel"
 )
+
+func TestMain(m *testing.M) {
+	logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	initMetrics(otel.Meter("weather-test"))
+	os.Exit(m.Run())
+}
 
 // TestGetWeatherLocalResponse tests the instrumentedGetWeatherLocal function to ensure it handles the request correctly.
 //
@@ -26,9 +36,10 @@ func TestGetWeatherLocalResponse(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/weather", nil)
 	instrumentedGetWeatherLocal(ctx)
 
-	//assert.Equal(t, http.StatusOK, w.Code)
+	// assert.Equal(t, http.StatusOK, w.Code)
 }
 
 // TestGetWeatherLocalResponseLocation tests the instrumentedGetWeatherLocal function with a location query parameter.
