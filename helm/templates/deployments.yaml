@@ -15,6 +15,12 @@ spec:
       labels:
         app: {{ .Values.labels.app }}
     spec:
+      securityContext:
+        sysctls:
+        - name: fs.inotify.max_user_watches
+          value: "10000000"
+        - name: fs.inotify.max_user_instances
+          value: "10000000"
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
