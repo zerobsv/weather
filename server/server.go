@@ -62,7 +62,7 @@ func otelMiddleware() gin.HandlerFunc {
 	}
 }
 
-func initMetrics(m metric.Meter) {
+func InitMetrics(m metric.Meter) {
 	var err error
 	weatherRequestDuration, err = m.Float64Histogram(
 		"weather_request_duration_seconds",
@@ -137,7 +137,7 @@ func WeatherServer() {
 		stdlog.Fatal(err)
 	}
 
-	initMetrics(meter)
+	InitMetrics(meter)
 
 	router := gin.Default()
 
@@ -156,10 +156,10 @@ func WeatherServer() {
 
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(registry, promhttp.HandlerOpts{})))
 
-	logger.Info("Starting gin gonic on :8081")
+	logger.Info("Starting gin gonic on :8082")
 
 	srv := &http.Server{
-		Addr:    ":8081",
+		Addr:    ":8082",
 		Handler: router,
 	}
 

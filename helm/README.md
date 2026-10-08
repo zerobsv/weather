@@ -1,4 +1,4 @@
-$ minikube start -p devx --driver=docker --nodes=3 --memory=4096m
+$ minikube start -p devx --driver=docker --nodes=3 --memory=4096m --docker-opt="default-ulimit=nofile=10000000:10000000"
 $ minikube image load -p devx weather:latest
 
 

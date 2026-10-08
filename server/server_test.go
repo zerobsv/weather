@@ -15,7 +15,7 @@ import (
 
 func TestMain(m *testing.M) {
 	logger = slog.New(slog.NewTextHandler(io.Discard, nil))
-	initMetrics(otel.Meter("weather-test"))
+	InitMetrics(otel.Meter("weather-test"))
 	os.Exit(m.Run())
 }
 
