@@ -2,6 +2,7 @@ package weather
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -69,7 +70,7 @@ func TestGetWeatherLocalResponseLocation(t *testing.T) {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	logger.Info("JSON response", "data", data)
+	fmt.Println("JSON response", "data", data)
 
 	//assert.Equal(t, "Bengaluru", data["city"])
 	//assert.Equal(t, "IN", data["country"])
@@ -85,27 +86,26 @@ func TestWeatherInternationalResponse(t *testing.T) {
 	ctx.Params = []gin.Param{
 		{
 			Key:   "location",
-			Value: "Tokyo",
+			Value: "Sydney",
 		},
 	}
 
-	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather/Tokyo", nil)
+	ctx.Request, _ = http.NewRequest(http.MethodGet, "/weather/Sydney", nil)
 
 	instrumentedGetWeatherInternational(ctx)
+	returnVal := w.Body.String()
 
-	//assert.Equal(t, http.StatusOK, w.Code)
+	fmt.Println("JSON Response body", "body", returnVal)
 
-	var data map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &data)
+	resp := make(map[string]interface{})
+	err := json.Unmarshal([]byte(returnVal), &resp)
 	if err != nil {
 		t.Errorf("Error unmarshalling JSON response: %v", err)
 	}
 
-	logger.Info("JSON response", "data", data)
+	fmt.Println("JSON response", "wbody", resp)
 
-	//assert.Equal(t, "Tokyo", data["city"])
-	//assert.Equal(t, "JP", data["country"])
-	//assert.NotEmpty(t, data["temperature"])
+	// assert.Equal(t, 1, 2)
 }
 
 func TestWeatherStressResponse0(t *testing.T) {

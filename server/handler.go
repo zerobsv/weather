@@ -104,7 +104,7 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 
 	requestUrl := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", location, apiKey)
 
-	logger.Info("Making a GET request", "location", location)
+	fmt.Println("Making a GET request", "location", location)
 
 	resp, err := client.Get(requestUrl)
 	if err != nil {
@@ -115,7 +115,7 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 	}
 	defer resp.Body.Close()
 
-	logger.Info("API response received", "status", resp.StatusCode)
+	fmt.Println("API response received", "status", resp.StatusCode)
 
 	if resp.StatusCode != http.StatusOK {
 		return WeatherData{}, fmt.Errorf("weather API request failed with status %s", resp.Status)
@@ -126,6 +126,8 @@ func sendWeatherRequest(location string) (WeatherData, error) {
 	if err != nil {
 		return WeatherData{}, fmt.Errorf("error unmarshalling JSON response: %v", err)
 	}
+
+	fmt.Println("Received Weather Data: ", weatherData)
 
 	return weatherData, nil
 }
