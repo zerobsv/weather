@@ -15,11 +15,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/metric"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -28,53 +26,64 @@ import (
 )
 
 var (
-	httpRequestsTotal      metric.Float64Counter
-	httpRequestDuration    metric.Float64Histogram
-	meter                  metric.Meter
-	logger                 *slog.Logger
-	traceProvider          *sdktrace.TracerProvider
-	weatherRequestDuration metric.Float64Histogram
-	weatherRequestCounter  metric.Float64Counter
-	tracer                 trace.Tracer
+	httpRequestsTotal   metric.Float64Counter
+	httpRequestDuration metric.Float64Histogram
+	meter               metric.Meter
+	logger              *slog.Logger
+	traceProvider       *sdktrace.TracerProvider
+	httpRequestCounter  metric.Float64Counter
+	tracer              trace.Tracer
 )
 
-func otelMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
+// func otelMiddleware() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		start := time.Now()
 
-		// Process request
-		c.Next()
+// 		// Process request
+// 		c.Next()
 
-		// Collect metrics
-		duration := time.Since(start).Seconds()
-		status := c.Writer.Status()
-		httpRequestsTotal.Add(context.Background(), 1,
-			metric.WithAttributes(
-				attribute.Key("method").String(c.Request.Method),
-				attribute.Key("endpoint").String(c.FullPath()),
-				attribute.Key("status").String(http.StatusText(status)),
-			))
-		httpRequestDuration.Record(context.Background(), duration,
-			metric.WithAttributes(
-				attribute.Key("method").String(c.Request.Method),
-				attribute.Key("endpoint").String(c.FullPath()),
-			))
-	}
-}
+// 		// Collect metrics
+// 		duration := time.Since(start).Seconds()
+// 		status := c.Writer.Status()
+// 		httpRequestsTotal.Add(context.Background(), 1,
+// 			metric.WithAttributes(
+// 				attribute.Key("method").String(c.Request.Method),
+// 				attribute.Key("endpoint").String(c.FullPath()),
+// 				attribute.Key("status").String(http.StatusText(status)),
+// 			))
+// 		httpRequestDuration.Record(context.Background(), duration,
+// 			metric.WithAttributes(
+// 				attribute.Key("method").String(c.Request.Method),
+// 				attribute.Key("endpoint").String(c.FullPath()),
+// 			))
+// 	}
+// }
 
 func InitMetrics(m metric.Meter) {
 	var err error
-	weatherRequestDuration, err = m.Float64Histogram(
-		"weather_request_duration_seconds",
-		metric.WithDescription("Histogram of response time for weather requests in seconds"),
+
+	httpRequestsTotal, err = m.Float64Counter(
+		"http_requests_total",
+		metric.WithDescription("Total number of HTTP requests"),
+	)
+	if err != nil {
+		logger.Error("Failed to create http_requests_total counter", "error", err)
+		stdlog.Fatal(err)
+	}
+
+	httpRequestDuration, err = m.Float64Histogram(
+		"http_request_duration_seconds",
+		metric.WithDescription("Histogram of response time for handler in seconds"),
 		metric.WithUnit("s"),
 	)
 	if err != nil {
+		logger.Error("Failed to create http_request_duration_seconds histogram", "error", err)
 		stdlog.Fatal(err)
 	}
-	weatherRequestCounter, err = m.Float64Counter(
-		"weather_requests_total",
-		metric.WithDescription("Total number of weather requests"),
+
+	httpRequestCounter, err = m.Float64Counter(
+		"http_requests_total",
+		metric.WithDescription("Total number of HTTP requests"),
 	)
 	if err != nil {
 		stdlog.Fatal(err)
@@ -114,35 +123,18 @@ func WeatherServer() {
 		stdlog.Fatal("Failed to create log exporter: ", err)
 	}
 	loggerProvider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)))
-	global.SetLoggerProvider(loggerProvider)
+	otel.SetLoggerProvider(loggerProvider)
 
 	logger = otelslog.NewLogger("weather", otelslog.WithLoggerProvider(loggerProvider))
 
 	// Create instruments
-	httpRequestsTotal, err = meter.Float64Counter(
-		"http_requests_total",
-		metric.WithDescription("Total number of HTTP requests"),
-	)
-	if err != nil {
-		logger.Error("Failed to create http_requests_total counter", "error", err)
-		stdlog.Fatal(err)
-	}
-	httpRequestDuration, err = meter.Float64Histogram(
-		"http_request_duration_seconds",
-		metric.WithDescription("Histogram of response time for handler in seconds"),
-		metric.WithUnit("s"),
-	)
-	if err != nil {
-		logger.Error("Failed to create http_request_duration_seconds histogram", "error", err)
-		stdlog.Fatal(err)
-	}
 
 	InitMetrics(meter)
 
 	router := gin.Default()
 
 	// Add OpenTelemetry middleware
-	router.Use(otelMiddleware())
+	// router.Use(otelMiddleware())
 
 	// Define routes
 	router.GET("/", getHandleDefaultRoute)
