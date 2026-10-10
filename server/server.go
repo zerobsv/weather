@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -35,29 +36,29 @@ var (
 	tracer              trace.Tracer
 )
 
-// func otelMiddleware() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		start := time.Now()
+func otelMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
 
-// 		// Process request
-// 		c.Next()
+		// Process request
+		c.Next()
 
-// 		// Collect metrics
-// 		duration := time.Since(start).Seconds()
-// 		status := c.Writer.Status()
-// 		httpRequestsTotal.Add(context.Background(), 1,
-// 			metric.WithAttributes(
-// 				attribute.Key("method").String(c.Request.Method),
-// 				attribute.Key("endpoint").String(c.FullPath()),
-// 				attribute.Key("status").String(http.StatusText(status)),
-// 			))
-// 		httpRequestDuration.Record(context.Background(), duration,
-// 			metric.WithAttributes(
-// 				attribute.Key("method").String(c.Request.Method),
-// 				attribute.Key("endpoint").String(c.FullPath()),
-// 			))
-// 	}
-// }
+		// Collect metrics
+		duration := time.Since(start).Seconds()
+		status := c.Writer.Status()
+		httpRequestsTotal.Add(context.Background(), 1,
+			metric.WithAttributes(
+				attribute.Key("method").String(c.Request.Method),
+				attribute.Key("endpoint").String(c.FullPath()),
+				attribute.Key("status").String(http.StatusText(status)),
+			))
+		httpRequestDuration.Record(context.Background(), duration,
+			metric.WithAttributes(
+				attribute.Key("method").String(c.Request.Method),
+				attribute.Key("endpoint").String(c.FullPath()),
+			))
+	}
+}
 
 func InitMetrics(m metric.Meter) {
 	var err error
@@ -134,7 +135,7 @@ func WeatherServer() {
 	router := gin.Default()
 
 	// Add OpenTelemetry middleware
-	// router.Use(otelMiddleware())
+	router.Use(otelMiddleware())
 
 	// Define routes
 	router.GET("/", getHandleDefaultRoute)

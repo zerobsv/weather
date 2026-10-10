@@ -101,6 +101,6 @@ $ kubectl port-forward -n logging svc/my-dashboards-opensearch-dashboards 5601:5
 
 $ helm install weather .
 
-$ kubectl port-forward svc/weather-service 8081:8081
+$ kubectl port-forward svc/weather-service 8082:8082
 
 
