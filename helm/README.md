@@ -17,7 +17,7 @@ $ helm repo update
 
 $ helm upgrade --install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace --set grafana.service.port=3001 -f prometheus-values.yaml
 
-
+<!--
 ### Headlamp install
 
 # first add our custom repo to your local helm repositories
@@ -35,7 +35,7 @@ $ kubectl port-forward -n kube-system svc/my-headlamp 8080:80
 kubectl -n kube-system create serviceaccount headlamp-admin
 kubectl create clusterrolebinding headlamp-admin --serviceaccount=kube-system:headlamp-admin --clusterrole=cluster-admin
 kubectl create token headlamp-admin -n kube-system
-
+-->
 
 4. Port forward services from the cluster
 
