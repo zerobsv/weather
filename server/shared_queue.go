@@ -148,7 +148,7 @@ func (q *SharedQueue) GetAll() []WeatherData {
 	return results
 }
 
-// Excellent work, works at scale!
+
 func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 
 	results := make([]WeatherData, 0, count)
@@ -167,7 +167,7 @@ func (q *SharedQueue) GetAllBlocking(count int) []WeatherData {
 	return results
 }
 
-// Excellent work, works at scale!
+
 func (q *SharedQueue) GetAllYielding(count int, ch chan WeatherData) {
 
 	// Yield Barrier: Wait for at least one element to be present in the queue
